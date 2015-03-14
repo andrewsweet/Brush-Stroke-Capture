@@ -1,11 +1,11 @@
 int IMAGE_WIDTH = 1080;
 int IMAGE_HEIGHT = 720;
+int FRAME_RATE = 30;
 
-int startTime;
+int START_TIME;
 
 color selectedColor;
-
-int FRAME_RATE = 30;
+String currentPlane;
 
 class Point
 {
@@ -27,11 +27,11 @@ class PointMoment extends Point
     y = y_;
     pressure = pressure_;
     
-    timestamp = millis() - startTime;
+    timestamp = millis() - START_TIME;
   }
 }
 
-HashMap planes = new HashMap();
+HashMap PLANES;
 
 JSONObject json;
 
@@ -40,7 +40,7 @@ void saveData() {
   
   JSONObject[] planes = new JSONObject[numCapturedPlanes];
   
-  Iterator iter = planes.entrySet().iterator();
+  Iterator iter = PLANES.entrySet().iterator();
   
   while (iter.hasNext()){
     Map.Entry plane = (Map.Entry)iter.next();
@@ -81,22 +81,42 @@ void saveData() {
 
 PointMoment lastMouse;
 
+ArrayList<PointMoment> getPlane(String name){
+   ArrayList<PointMoment> plane = PLANES.get(name);
+   
+   if (plane == null){
+     plane = new ArrayList<PointMoment>();
+     
+     PLANES.put(name, plane);
+   }
+   
+   return plane;
+}
+
 void setup() {
   frameRate(FRAME_RATE);
   
+  PLANES = new HashMap();
+  
+  currentPlane = "default";
+  
+  ArrayList<PointMoment> dPlane = getPlane(currentPlane);
+  
   size(IMAGE_WIDTH, IMAGE_HEIGHT);
-  startTime = millis();
+  START_TIME = millis();
   
   selectedColor = color(0);
 }
 
-void drawLine(float pressure){
+void addPoint(float pressure){
   PointMoment pt = new PointMoment(mouseX, mouseY, pressure);
+  
+  
 }
 
 void update() {
   if (mousePressed){
-    drawLine(1.0);
+    addPoint(1.0);
   }
 }
 
