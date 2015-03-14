@@ -5,7 +5,7 @@ int startTime;
 
 color selectedColor;
 
-int FRAMES_PER_SECOND = 30;
+int FRAME_RATE = 30;
 
 class Point
 {
@@ -31,6 +31,8 @@ class PointMoment extends Point
   }
 }
 
+HashMap planes = new HashMap();
+
 JSONObject json;
 
 void saveData() {
@@ -38,17 +40,24 @@ void saveData() {
   
   JSONObject[] planes = new JSONObject[numCapturedPlanes];
   
-  for (int i = 0; i < numCapturedPlanes; i++){
-    JSONObject[] points = new JSONObject[numCapturedPoints];
+  Iterator iter = planes.entrySet().iterator();
+  
+  while (iter.hasNext()){
+    Map.Entry plane = (Map.Entry)iter.next();
+    
+    String name = plane.getKey();
+    Point[] capturedPoints = plane.getValue();
+    
+    int numCapturedPoints = capturedPoints.length;
     
     JSONObject plane = new JSONObject();
     
-    Plane c_plane = planes[i];
+    JSONObject[] points = new JSONObject[numCapturedPoints];
     
-    for (int j = 0; j < c_plane.numCapturedPoints; j++){
+    for (int j = 0; j < numCapturedPoints; j++){
       JSONObject temp = new JSONObject;
       
-      PointMoment p = c_plane.capturedPoints[j];
+      PointMoment p = capturedPoints[j];
       
       temp.setInt("x", p.x);
       temp.setInt("y", p.y);
@@ -56,14 +65,14 @@ void saveData() {
       temp.setFloat("pressure", p.pressure);
       temp.setInt("timestamp", p.timestamp);
       
-      c_plane.points[j] = temp;
+      points[j] = temp;
     }
     
-    plane.setString("name", c_plane.name);
+    plane.setString("name", name);
     plane.setJSONArray("points", points);
   }
   
-  json.setInt("fps", FRAMES_PER_SECOND);
+  json.setInt("fps", FRAME_RATE);
   json.setInt("numFrames", numCapturedPoints);
   json.setJSONArray("planes", planes);
 
@@ -73,6 +82,8 @@ void saveData() {
 PointMoment lastMouse;
 
 void setup() {
+  frameRate(FRAME_RATE);
+  
   size(IMAGE_WIDTH, IMAGE_HEIGHT);
   startTime = millis();
   
