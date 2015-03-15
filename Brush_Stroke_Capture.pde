@@ -21,6 +21,10 @@ Stroke currentStroke;
 ArrayList<Pair> FACE_CONNECTIONS;
 ArrayList<Triplet> FACE_TRIS;
 
+void clearCachedData(){
+  PLANES = new HashMap();
+}
+
 class Pair
 {
   public int p1, p2;
@@ -197,8 +201,7 @@ void setup() {
   background(255);
   frameRate(FRAME_RATE);
   
-  PLANES = new HashMap();
-  
+  clearCachedData();
   currentPlane = "default";
   
   ArrayList<Stroke> dPlane = getPlane(currentPlane);
@@ -207,6 +210,11 @@ void setup() {
   START_TIME = millis();
   
   selectedColor = color(0);
+  
+  loadFaceData();
+//  drawTris();
+  drawFace();
+  drawFacePoints();
 }
 
 void addPoint(float pressure){
@@ -240,7 +248,7 @@ void update() {
   }
 }
 
-JSONArray faceVertices;
+JSONArray FACE_VERTICES;
 
 void loadConnections(){
   BufferedReader reader;
@@ -279,7 +287,7 @@ void loadConnections(){
 void loadTris(){
   BufferedReader reader;
   
-  reader = createReader("data/face.con");
+  reader = createReader("data/face.tri");
   
   boolean shouldRead = true;
   
@@ -317,9 +325,58 @@ void loadFaceData(){
   JSONObject json = jsonArray.getJSONObject(0);
   
   loadConnections();
-//  loadTris();
+  loadTris();
   
-  faceVertices = json.getJSONArray("vertices");
+  FACE_VERTICES = json.getJSONArray("vertices");
+}
+
+void drawFace(){
+  for (int i = 0; i < FACE_CONNECTIONS.size(); i++){
+    Pair pair = FACE_CONNECTIONS.get(i);
+    
+    JSONArray a1 = FACE_VERTICES.getJSONArray(pair.p1);
+    JSONArray a2 = FACE_VERTICES.getJSONArray(pair.p2);
+    
+    float x1 = a1.getFloat(0);
+    float y1 = a1.getFloat(1);
+    
+    float x2 = a2.getFloat(0);
+    float y2 = a2.getFloat(1);
+    
+    line(x1, y1, x2, y2);
+  }
+}
+
+void drawFacePoints(){
+  for (int i = 0; i < FACE_VERTICES.size(); i++){
+    JSONArray arr = FACE_VERTICES.getJSONArray(i);
+    
+    float x = arr.getFloat(0);
+    float y = arr.getFloat(1);
+    
+    ellipse(x, y, 2, 2);
+  }
+}
+
+void drawTris(){
+  for (int i = 0; i < FACE_TRIS.size(); i++){
+    Triplet triplet = FACE_TRIS.get(i);
+    
+    JSONArray a1 = FACE_VERTICES.getJSONArray(triplet.p1);
+    JSONArray a2 = FACE_VERTICES.getJSONArray(triplet.p2);
+    JSONArray a3 = FACE_VERTICES.getJSONArray(triplet.p2);
+    
+    float x1 = a1.getFloat(0);
+    float y1 = a1.getFloat(1);
+    
+    float x2 = a2.getFloat(0);
+    float y2 = a2.getFloat(1);
+    
+    float x3 = a3.getFloat(0);
+    float y3 = a3.getFloat(1);
+    
+    triangle(x1, y1, x2, y2, x3, y3);
+  }
 }
 
 void keyPressed() {
@@ -344,6 +401,9 @@ void keyPressed() {
       if (!isAnimating){
         playAnimation();
       }
+    } else if (key == 'r'){
+      START_TIME = millis();
+      clearCachedData();
     }
   }
 }
