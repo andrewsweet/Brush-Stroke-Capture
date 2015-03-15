@@ -18,6 +18,40 @@ color selectedColor;
 String currentPlane;
 Stroke currentStroke;
 
+ArrayList<Pair> FACE_CONNECTIONS;
+ArrayList<Triplet> FACE_TRIS;
+
+class Pair
+{
+  public int p1, p2;
+  
+  public Pair(int p1_, int p2_){
+    p1 = p1_;
+    p2 = p2_;
+  }
+}
+
+class Triplet
+{
+  public int p1, p2, p3;
+  
+  public Triplet(int p1_, int p2_, int p3_){
+    p1 = p1_;
+    p2 = p2_;
+    p3 = p3_;
+  }
+}
+
+class Pt
+{
+  public int x, y;
+  
+  public Pt(int x_, int y_){
+    x = x_;
+    y = y_;
+  }
+}
+
 class Point
 {
   public int x, y, timestamp;
@@ -44,9 +78,6 @@ class Stroke
     points.add(pt);
   }
 }
-
-
-JSONObject json;
 
 void saveData() {
   JSONObject json = new JSONObject();
@@ -163,6 +194,7 @@ Stroke getCurrentStroke(){
 }
 
 void setup() {
+  background(255);
   frameRate(FRAME_RATE);
   
   PLANES = new HashMap();
@@ -206,6 +238,88 @@ void update() {
   } else {
     animate();
   }
+}
+
+JSONArray faceVertices;
+
+void loadConnections(){
+  BufferedReader reader;
+  
+  reader = createReader("data/face.con");
+  
+  boolean shouldRead = true;
+  
+  FACE_CONNECTIONS = new ArrayList<Pair>();
+  
+  String line;
+  
+  while (shouldRead){
+    try{
+      line = reader.readLine();
+    } catch (IOException e){
+      e.printStackTrace();
+      line = null;
+    }
+    
+    if (line == null){
+      shouldRead = false;
+    } else {
+      String[] pieces = split(line, ' ');
+      
+      int start = int(pieces[0]);
+      int end = int(pieces[1]);
+      
+      Pair pair = new Pair(start, end);
+      
+      FACE_CONNECTIONS.add(pair);
+    }
+  }
+}
+
+void loadTris(){
+  BufferedReader reader;
+  
+  reader = createReader("data/face.con");
+  
+  boolean shouldRead = true;
+  
+  FACE_TRIS = new ArrayList<Triplet>();
+  
+  String line;
+  
+  while (shouldRead){
+    try{
+      line = reader.readLine();
+    } catch (IOException e){
+      e.printStackTrace();
+      line = null;
+    }
+    
+    if (line == null){
+      shouldRead = false;
+    } else {
+      String[] pieces = split(line, ' ');
+      
+      int p1 = int(pieces[0]);
+      int p2 = int(pieces[1]);
+      int p3 = int(pieces[2]);
+      
+      Triplet triplet = new Triplet(p1, p2, p3);
+      
+      FACE_TRIS.add(triplet);
+    }
+  }
+}
+
+void loadFaceData(){
+  JSONArray jsonArray = loadJSONArray("data/faceData.json");
+  
+  JSONObject json = jsonArray.getJSONObject(0);
+  
+  loadConnections();
+//  loadTris();
+  
+  faceVertices = json.getJSONArray("vertices");
 }
 
 void keyPressed() {
