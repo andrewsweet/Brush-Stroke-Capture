@@ -112,7 +112,7 @@ void saveData() {
 
   saveJSONObject(json, "data/penData.json");
   
-  println("File saved!");
+  println("\nFile saved!");
 }
 
 Point lastMouse;
@@ -121,15 +121,19 @@ void playAnimation(){
   isAnimating = true;
   ANIMATION_START_TIME = millis();
   
-  enqueuePoints();
+  println("\nStart animation!");
 }
 
 void animate(){
   int currentTime = millis() - ANIMATION_START_TIME;
   
-  while (currentTime > nextPoint.timestamp){
+//  while (currentTime > nextPoint.timestamp){
+//  
+//  }
+
   
-  }
+  isAnimating = false;
+  println("Animation complete!");
 }
 
 ArrayList<Stroke> getPlane(String name){
