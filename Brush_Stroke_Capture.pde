@@ -1,28 +1,29 @@
+import java.util.Iterator;
+import java.util.Map;
+import java.util.HashMap;
+
 int IMAGE_WIDTH = 1080;
 int IMAGE_HEIGHT = 720;
 int FRAME_RATE = 30;
+int MAX_DIAMETER = 5;
+HashMap PLANES;
 
 int START_TIME;
 
+int ANIMATION_START_TIME;
+
+boolean isAnimating = false;
+
 color selectedColor;
 String currentPlane;
+Stroke currentStroke;
 
 class Point
 {
-  public int x, y;
-  
-  public Point(int x_, int y_){
-    x = x_;
-    y = y_;
-  }
-}
-
-class PointMoment extends Point
-{
-  public int timestamp;
+  public int x, y, timestamp;
   public float pressure;
   
-  public PointMoment(int x_, int y_, float pressure_){
+  public Point(int x_, int y_, float pressure_){
     x = x_;
     y = y_;
     pressure = pressure_;
@@ -31,66 +32,130 @@ class PointMoment extends Point
   }
 }
 
-HashMap PLANES;
+class Stroke
+{
+  public ArrayList<Point> points;
+  
+  public Stroke(){
+    points = new ArrayList<Point>();
+  }
+  
+  public void addPoint(Point pt){
+    points.add(pt);
+  }
+}
+
 
 JSONObject json;
 
 void saveData() {
   JSONObject json = new JSONObject();
   
-  JSONObject[] planes = new JSONObject[numCapturedPlanes];
+  int numCapturedPlanes = PLANES.size();
+  
+  JSONArray planes = new JSONArray();
   
   Iterator iter = PLANES.entrySet().iterator();
   
+  int index = 0;
+  
   while (iter.hasNext()){
-    Map.Entry plane = (Map.Entry)iter.next();
+    Map.Entry me = (Map.Entry)iter.next();
     
-    String name = plane.getKey();
-    Point[] capturedPoints = plane.getValue();
+    String name = (String)me.getKey();
+    ArrayList<Stroke> currentPlane = (ArrayList<Stroke>)me.getValue();
     
-    int numCapturedPoints = capturedPoints.length;
+    int numStrokes = currentPlane.size();
     
     JSONObject plane = new JSONObject();
+    JSONArray strokes = new JSONArray();
     
-    JSONObject[] points = new JSONObject[numCapturedPoints];
+    for (int i = 0; i < numStrokes; i++){
+      Stroke currentStroke = currentPlane.get(i);
+      
+      ArrayList<Point> capturedPoints = currentStroke.points;
+      
+      int numCapturedPoints = capturedPoints.size();
     
-    for (int j = 0; j < numCapturedPoints; j++){
-      JSONObject temp = new JSONObject;
+      JSONObject stroke = new JSONObject();
       
-      PointMoment p = capturedPoints[j];
+      JSONArray points = new JSONArray();
       
-      temp.setInt("x", p.x);
-      temp.setInt("y", p.y);
+      for (int j = 0; j < numCapturedPoints; j++){
+        JSONObject temp = new JSONObject();
+        
+        Point p = capturedPoints.get(j);
+        
+        temp.setInt("x", p.x);
+        temp.setInt("y", p.y);
+        
+        temp.setFloat("pressure", p.pressure);
+        temp.setInt("timestamp", p.timestamp);
+        
+        points.setJSONObject(j, temp);
+      }
       
-      temp.setFloat("pressure", p.pressure);
-      temp.setInt("timestamp", p.timestamp);
+      stroke.setJSONArray("points", points);
       
-      points[j] = temp;
+      strokes.setJSONObject(i, stroke);
     }
     
     plane.setString("name", name);
-    plane.setJSONArray("points", points);
+    plane.setJSONArray("stroke", strokes);
+    
+    planes.setJSONObject(index, plane);
+    index++;
   }
   
   json.setInt("fps", FRAME_RATE);
-  json.setInt("numFrames", numCapturedPoints);
   json.setJSONArray("planes", planes);
 
   saveJSONObject(json, "data/penData.json");
+  
+  println("File saved!");
 }
 
-PointMoment lastMouse;
+Point lastMouse;
 
-ArrayList<PointMoment> getPlane(String name){
-   ArrayList<PointMoment> plane = PLANES.get(name);
+void playAnimation(){
+  isAnimating = true;
+  ANIMATION_START_TIME = millis();
+  
+  enqueuePoints();
+}
+
+void animate(){
+  int currentTime = millis() - ANIMATION_START_TIME;
+  
+  while (currentTime > nextPoint.timestamp){
+  
+  }
+}
+
+ArrayList<Stroke> getPlane(String name){
+   ArrayList<Stroke> plane = (ArrayList<Stroke>)PLANES.get(name);
    
    if (plane == null){
-     plane = new ArrayList<PointMoment>();
+     plane = new ArrayList<Stroke>();
      
      PLANES.put(name, plane);
    }
    
    return plane;
+}
+
+Stroke getCurrentStroke(){
+  if (currentStroke != null){
+    return currentStroke;
+  }
+  
+  ArrayList<Stroke> plane = getPlane(currentPlane);
+  
+  currentStroke = new Stroke();
+  
+  plane.add(currentStroke);
+
+  return currentStroke;
 }
 
 void setup() {
@@ -100,7 +165,7 @@ void setup() {
   
   currentPlane = "default";
   
-  ArrayList<PointMoment> dPlane = getPlane(currentPlane);
+  ArrayList<Stroke> dPlane = getPlane(currentPlane);
   
   size(IMAGE_WIDTH, IMAGE_HEIGHT);
   START_TIME = millis();
@@ -109,14 +174,33 @@ void setup() {
 }
 
 void addPoint(float pressure){
-  PointMoment pt = new PointMoment(mouseX, mouseY, pressure);
+  Point pt = new Point(mouseX, mouseY, pressure);
   
+  if (lastMouse != null){
+    if (mouseX == lastMouse.x && mouseY == lastMouse.y){
+    } else {
+      Stroke stroke = getCurrentStroke();
+      
+      stroke.addPoint(pt);
+      
+      strokeWeight(MAX_DIAMETER * pressure);
+      line(lastMouse.x, lastMouse.y, pt.x, pt.y);
+    }
+  }
   
+  lastMouse = pt;
 }
 
 void update() {
-  if (mousePressed){
-    addPoint(1.0);
+  if (!isAnimating){
+    if (mousePressed){
+      addPoint(0.9);
+    } else {
+      lastMouse = null;
+      currentStroke = null;
+    }
+  } else {
+    animate();
   }
 }
 
@@ -137,7 +221,11 @@ void keyPressed() {
     }
   } else {
     if (key == 'w'){
+      saveData();
     } else if (key == 's'){
+      if (!isAnimating){
+        playAnimation();
+      }
     }
   }
 }
