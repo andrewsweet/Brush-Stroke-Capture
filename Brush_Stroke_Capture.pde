@@ -12,6 +12,8 @@ int START_TIME;
 
 int ANIMATION_START_TIME;
 
+int MIN_DRAW_DIST_SQ = 0;
+
 boolean isAnimating = false;
 
 color selectedColor;
@@ -67,6 +69,13 @@ class Point
     pressure = pressure_;
     
     timestamp = millis() - START_TIME;
+  }
+  
+  int distanceSq(Point p2){
+    int a = abs(x - p2.x);
+    int b = abs(y - p2.y);
+    
+    return (a * a) + (b * b);
   }
 }
 
@@ -408,7 +417,67 @@ void keyPressed() {
   }
 }
 
+void drawEverything(){
+  int numCapturedPlanes = PLANES.size();
+  
+  Iterator iter = PLANES.entrySet().iterator();
+  
+  noFill();
+  smooth();
+  
+  
+  
+  while (iter.hasNext()){
+    Map.Entry me = (Map.Entry)iter.next();
+    
+    String name = (String)me.getKey();
+    ArrayList<Stroke> currentPlane = (ArrayList<Stroke>)me.getValue();
+    
+    int numStrokes = currentPlane.size();
+    
+    for (int i = 0; i < numStrokes; i++){
+      Stroke currentStroke = currentPlane.get(i);
+      
+      ArrayList<Point> capturedPoints = currentStroke.points;
+      
+      int numCapturedPoints = capturedPoints.size();
+      
+      beginShape();
+      
+      Point lastPoint = null;
+      
+      for (int j = 0; j < numCapturedPoints; j++){
+        Point p = capturedPoints.get(j);
+        
+        if (lastPoint == null){
+          curveVertex(p.x, p.y);
+          lastPoint = p;
+        } else if (lastPoint.distanceSq(p) > MIN_DRAW_DIST_SQ){
+          curveVertex(p.x, p.y);
+          lastPoint = p;
+        }
+        
+//        p.pressure;
+//        p.timestamp;
+      }
+      
+      endShape();
+    }
+  }
+}
 
 void draw() {
   update();
+  
+  background(255);
+  
+  noFill();
+  strokeWeight(1);
+  
+  drawFace();
+  drawFacePoints();
+  
+  strokeWeight(MAX_DIAMETER);
+  
+  drawEverything();
 }
