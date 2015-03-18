@@ -97,6 +97,7 @@ JSONObject currentFace;
 
 JSONArray FACE_VERTEX_FRAMES;
 HashMap FACE_FEATURES;
+HashMap STATIC_FACE_FEATURES; // Where the artist face was presented for drawing
 
 
 void addPointToDrawn(Point point){
@@ -158,20 +159,30 @@ void loadFeatures(){
     } else {
       String[] pieces = split(line, ' ');
       
+      JSONObject json = FACE_VERTEX_FRAMES.getJSONObject(0);
+      JSONArray faceVertices = json.getJSONArray("vertices"); 
+      
       if (pieces.length == 1){
         // Read feature name line
         featureName = pieces[0];
       } else {
         // Read the associated data
         ArrayList<Integer> points = new ArrayList<Integer>();
+        ArrayList<Pt> staticPoints = new ArrayList<Pt>();
         
         for (int i = 0; i < pieces.length; i++){
           int vertexNum = int(pieces[i]);
           
+          JSONArray pt = faceVertices.get(vertexNum);
+          
+          Pt staticPoint = new Point(pt.get(0), pt.get(1));
+          
           points.add(vertexNum);
+          staticPoints.add(staticPoint);
         }
         
         FACE_FEATURES.put(featureName, points);
+        STATIC_FACE_FEATURES.put(featureName, staticPoints);
       }
     }
   }
@@ -276,7 +287,9 @@ void loadTris(){
 void loadFaceData(){
   FACE_VERTEX_FRAMES = loadJSONArray("data/faceData.json");
   
-  JSONObject json = FACE_VERTEX_FRAMES.getJSONObject(0);
+//  JSONObject json = FACE_VERTEX_FRAMES.getJSONObject(0);
+  
+//  modifyFaceVertices();
   
   loadFeatures();
   loadConnections();
@@ -284,7 +297,7 @@ void loadFaceData(){
   
 //  FACE_VERTICES = json.getJSONArray("vertices");
   
-//  modifyFaceVertices();
+
 }
 
 void loadBrushData(){
@@ -335,55 +348,115 @@ Pt findCentroid(ArrayList<Pt> points){
   return new Pt(x, y);
 }
 
-//http://stackoverflow.com/questions/17623876/matrix-multiplication-using-arrays
-public static double[][] multiplyByMatrix(double[][] m1, double[][] m2) {
-    int m1ColLength = m1[0].length; // m1 columns length
-    int m2RowLength = m2.length;    // m2 rows length
-    if(m1ColLength != m2RowLength) return null; // matrix multiplication is not possible
-    int mRRowLength = m1.length;    // m result rows length
-    int mRColLength = m2[0].length; // m result columns length
-    double[][] mResult = new double[mRRowLength][mRColLength];
-    for(int i = 0; i < mRRowLength; i++) {         // rows from m1
-      for(int j = 0; j < mRColLength; j++) {     // columns from m2
-        for(int k = 0; k < m1ColLength; k++) { // columns from m1
-          mResult[i][j] += m1[i][k] * m2[k][j];
-        }
-      }
-    }
-    return mResult;
+//http://stackoverflow.com/questions/1211212/how-to-calculate-an-angle-from-three-points
+float findAngle(Pt p0, Pt p1, Pt c) {
+    float p0c = sqrt(pow(c.x-p0.x,2)+
+                        pow(c.y-p0.y,2)); // p0->c (b)   
+    float p1c = sqrt(pow(c.x-p1.x,2)+
+                        pow(c.y-p1.y,2)); // p1->c (a)
+    float p0p1 = sqrt(pow(p1.x-p0.x,2)+
+                         pow(p1.y-p0.y,2)); // p0->p1 (c)
+    return acos((p1c*p1c+p0c*p0c-p0p1*p0p1)/(2*p1c*p0c));
 }
 
-double[][] rotationMatrix(Point p1, Point p2){
-  double a0 = (p1.x * p2.x) + (p1.y * p2.y);
-  double a1 = (p1.x * p2.y) - (p2.x * p1.y);
-  double b0 = -((p1.x * p2.y) - (p1.y * p2.x));
-  double b1 = (p1.x * p2.x) + (p1.y * p2.y);
+ArrayList<Pt> getCurrentFacePointsForLayer(String name){
+  ArrayList<Integer> pointNums = FACE_FEATURES.get(name);
+  JSONArray arr = FACE_VERTEX_FRAMES.get(currentFrame);
   
-  double[][] rotMatrix = {{a0, a1}, 
-                          {b0, b1}};
-                          
-  double x = p1.x;
-  double y = p1.y;
-                      
-  double[][] point = {{x}, {y}};
-                       
-  double[][] result = multiplyByMatrix(rotMatrix, point);
+  ArrayList<Pt> result = new ArrayList<Pt>();
+  
+  for (int i = 0; i < pointNums.size(); i++){
+    int pointNum = pointNums.get(i);
+    JSONArray pointArr = arr.get(pointNum);
+    Pt pt = new Pt(pointArr.get(0), pointArr.get(1));
+    
+    result.add(pt);
+  }
   
   return result;
 }
 
-
-
-void fullTransform(){
-  // for each piece
+void setupMatrixForLayer(String name){
+  ArrayList<Pt> points = STATIC_FACE_FEATURES.get(name);
+  ArrayList<Pt> transformedPoints = getCurrentFacePointsForLayer(name);
   
-  // get relevant strokes
+  if (points == null || points.size() == 0){
+    return null;
+  }
   
   // line up centroids
+  Pt centroid = findCentroid(transformedPoints);
+  Pt oldCentroid = findCentroid(points);
+  
+  translate(centroid.x, centroid.y);
+  
+  Pt delta = new Pt(-oldCentroid.x, 
+                    -oldCentroid.y);
+  
+  Pt widestPoint = null;
+  Pt tallestPoint = null;
+  
+  int widestPointNum = 0;
+  int tallestPointNum = 0;
+  
+  float widest = 0;
+  float tallest = 0;
+  
+  for (int i = 0; i < points.size(); i++){
+    Pt point = points.get(i);
+    Pt updatedPoint = new Pt(point.x + delta.x, point.y + delta.y);
+    
+    if (widestPoint == null){
+      widestPoint = updatedPoint;
+      tallestPoint = updatedPoint;
+      
+      widest = abs(widestPoint.x - centroid.x);
+      tallest = abs(tallestPoint.y - centroid.y);
+    } else {
+      float temp = abs(updatedPoint.x - centroid.x);
+      if (widest < temp){
+        widest = temp;
+        widestPoint = updatedPoint;
+        widestPointNum = i;
+      }
+      
+      temp = abs(updatedPoint.y - centroid.y);
+      if (tallest < temp){
+        tallest = temp;
+        tallestPoint = updatedPoint;
+        tallestPointNum = i;
+      }
+    }
+    
+    points.set(i, updatedPoint);
+  }
   
   // rotate so points are on same line from centroid
+  Pt p1 = points.get(0);
+  Pt p2 = transformedPoints.get(0);
+  
+  float angle = findAngle(p1, p2, centroid);
+  
+  rotate(angle);
   
   // scale to match distance from centroid
+  Pt tP = transformedPoints.get(tallestPointNum);
+  
+  float yHeight = abs(tP.y - centroid.y);
+  float oldYHeight = abs(tallestPoint.y - centroid.y);
+  
+  float yScale = yHeight / oldYHeight;
+  
+  tP = transformedPoints.get(widestPointNum);
+  
+  float xWidth = abs(tP.x - centroid.x);
+  float oldXWidth = abs(tallestPoint.x - centroid.x);
+  
+  float xScale = xWidth / oldXWidth;
+  
+  scale(xScale, yScale);
+  
+  return centroid;
 }
 
 int currentTime(){
@@ -436,6 +509,10 @@ void drawDrawingSoFar(){
     ArrayList<Stroke>strokes = (ArrayList<Stroke>)DRAWN_LAYERS.get(name);
     
     if (strokes != null){
+      pushMatrix();
+      
+      Pt centroid = setupMatrixForLayer(name);
+      
       for (int j = 0; j < strokes.size(); j++){
         Stroke stroke = strokes.get(j);
         
@@ -451,7 +528,7 @@ void drawDrawingSoFar(){
           for (int k = 1; k < points.size(); k++){
             Point pt = points.get(k);
             
-            curveVertex(pt.x, pt.y);
+            curveVertex(pt.x - centroid.x, pt.y - centroid.y);
             
             lastPoint = pt;
           }
@@ -459,6 +536,8 @@ void drawDrawingSoFar(){
           endShape();
         }
       }
+      
+      popMatrix();
     }
   }
 }
