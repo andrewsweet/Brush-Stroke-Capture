@@ -2,6 +2,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 import java.util.Queue;
+import java.util.LinkedList;
 
 int IMAGE_WIDTH = 1080;
 int IMAGE_HEIGHT = 720;
@@ -13,13 +14,25 @@ ArrayList<Triplet> FACE_TRIS;
 
 int START_TIME = 0;
 
+JSONArray BRUSH_DATA;
+
 HashMap DRAWN_LAYERS;
 
 Point lastPoint;
 
 String[] FACE_LAYERS;
 
-Queue<Point> ToDraw;
+Queue<Point> toDraw;
+
+class Pt
+{
+  public float x, y;
+  
+  public Pt(float x_, float y_){
+    x = x_;
+    y = y_;
+  }
+}
 
 class Stroke
 {
@@ -39,6 +52,7 @@ class Point
   public int x, y, timestamp;
   public float pressure;
   public String layer;
+  boolean isNewStroke = false;
   
   public Point(int x_, int y_, float pressure_, String layer_){
     x = x_;
@@ -85,17 +99,37 @@ JSONArray FACE_VERTEX_FRAMES;
 HashMap FACE_FEATURES;
 
 
-void addPointToDrawn(Point pt){
-  String layerName = pt.layer;
+void addPointToDrawn(Point point){
+  String layerName = point.layer;
   
-  ArrayList<Stroke>strokes = (ArrayList<Point>)DRAWN_LAYERS.get(layerName);
+  ArrayList<Stroke>strokes = (ArrayList<Stroke>)DRAWN_LAYERS.get(layerName);
   
   if (strokes == null){
     strokes = new ArrayList<Stroke>();
     DRAWN_LAYERS.put(layerName, strokes);
   }
   
-  strokes.add(pt);
+  int numStrokes = strokes.size();
+  
+  Stroke stroke;
+  
+  if (point.isNewStroke){
+    stroke = new Stroke();
+    
+    stroke.addPoint(point);
+    strokes.add(stroke);
+  } else {
+    if (numStrokes > 0){
+      stroke = strokes.get(numStrokes-1);
+      
+      stroke.addPoint(point);
+    } else {
+      stroke = new Stroke();
+    
+      stroke.addPoint(point);
+      strokes.add(stroke);
+    }
+  }
 }
 
 void loadFeatures(){
@@ -254,12 +288,14 @@ void loadFaceData(){
 }
 
 void loadBrushData(){
-  JSONObject temp = loadJSONObject("data/penData.json")
+  JSONObject temp = loadJSONObject("data/penData.json");
   
-  BRUSH_DATA = temp.getJSONObject("planes");
+  BRUSH_DATA = temp.getJSONArray("planes");
 }
 
 void setup(){
+  toDraw = new LinkedList<Point>();
+  
   frameRate(FRAME_RATE);
   size(IMAGE_WIDTH, IMAGE_HEIGHT);
   
@@ -299,10 +335,71 @@ Pt findCentroid(ArrayList<Pt> points){
   return new Pt(x, y);
 }
 
+//http://stackoverflow.com/questions/17623876/matrix-multiplication-using-arrays
+public static double[][] multiplyByMatrix(double[][] m1, double[][] m2) {
+    int m1ColLength = m1[0].length; // m1 columns length
+    int m2RowLength = m2.length;    // m2 rows length
+    if(m1ColLength != m2RowLength) return null; // matrix multiplication is not possible
+    int mRRowLength = m1.length;    // m result rows length
+    int mRColLength = m2[0].length; // m result columns length
+    double[][] mResult = new double[mRRowLength][mRColLength];
+    for(int i = 0; i < mRRowLength; i++) {         // rows from m1
+      for(int j = 0; j < mRColLength; j++) {     // columns from m2
+        for(int k = 0; k < m1ColLength; k++) { // columns from m1
+          mResult[i][j] += m1[i][k] * m2[k][j];
+        }
+      }
+    }
+    return mResult;
+}
 
+double[][] rotationMatrix(Point p1, Point p2){
+  double a0 = (p1.x * p2.x) + (p1.y * p2.y);
+  double a1 = (p1.x * p2.y) - (p2.x * p1.y);
+  double b0 = -((p1.x * p2.y) - (p1.y * p2.x));
+  double b1 = (p1.x * p2.x) + (p1.y * p2.y);
+  
+  double[][] rotMatrix = {{a0, a1}, 
+                          {b0, b1}};
+                          
+  double x = p1.x;
+  double y = p1.y;
+                      
+  double[][] point = {{x}, {y}};
+                       
+  double[][] result = multiplyByMatrix(rotMatrix, point);
+  
+  return result;
+}
+
+
+
+void fullTransform(){
+  // for each piece
+  
+  // get relevant strokes
+  
+  // line up centroids
+  
+  // rotate so points are on same line from centroid
+  
+  // scale to match distance from centroid
+}
+
+int currentTime(){
+  return millis() + START_TIME;
+}
 
 void addVisibleBrushPoints(){
-  addPointToDrawn(pt);
+  Point point = toDraw.peek();
+  
+  while (point != null && (point.timestamp <= currentTime())){
+    toDraw.poll();
+    
+    addPointToDrawn(point);
+    
+    point = toDraw.peek();
+  }
 }
 
 void update(){
@@ -336,7 +433,7 @@ void drawDrawingSoFar(){
   for (int i = 0; i < FACE_LAYERS.length; i++){
     String name = FACE_LAYERS[i];
     
-    ArrayList<Stroke>strokes = (ArrayList<Point>)DRAWN_LAYERS.get(name);
+    ArrayList<Stroke>strokes = (ArrayList<Stroke>)DRAWN_LAYERS.get(name);
     
     if (strokes != null){
       for (int j = 0; j < strokes.size(); j++){
