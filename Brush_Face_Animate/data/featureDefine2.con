@@ -25,9 +25,9 @@ right_upper_lid
 right_lower_lid
 42 47 46 45
 upper_lip
-48 54
+48 49 50 51 52 53 54 62 61 60 48
 lower_lip
-48 54
+48 59 58 57 56 55 54 63 64 65 48
 inside_mouth
 65 63
 default_back

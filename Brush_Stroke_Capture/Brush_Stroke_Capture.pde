@@ -103,6 +103,8 @@ void saveData() {
   
   Iterator iter = PLANES.entrySet().iterator();
   
+  int relativeIndex = 0;
+  
   for (int index = 0; index < FACE_LAYERS.length; index++){
     String name = FACE_LAYERS[index];
     
@@ -147,7 +149,8 @@ void saveData() {
       plane.setString("name", name);
       plane.setJSONArray("stroke", strokes);
       
-      planes.setJSONObject(index, plane);
+      planes.setJSONObject(relativeIndex, plane);
+      relativeIndex++;
     }
   }
   
@@ -213,6 +216,9 @@ int SELECTED_VERTEX;
 void setup() {
   SELECTED_VERTEX = 0;
   
+  START_TIME = millis();
+  clearCachedData();
+  
   background(255);
   frameRate(FRAME_RATE);
   
@@ -226,13 +232,11 @@ void setup() {
   
   FACE_LAYERS = temp;
   
-  clearCachedData();
   currentPlaneNum = 1;
   
   ArrayList<Stroke> dPlane = getPlane(currentPlaneNum);
   
   size(IMAGE_WIDTH, IMAGE_HEIGHT);
-  START_TIME = millis();
   
   selectedColor = color(0);
   
@@ -240,6 +244,8 @@ void setup() {
 //  drawTris();
   drawFace();
   drawFacePoints();
+  
+  
 }
 
 void addPoint(float pressure){

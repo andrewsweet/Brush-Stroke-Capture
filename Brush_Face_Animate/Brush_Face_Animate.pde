@@ -5,19 +5,27 @@ import java.util.Iterator;
 import java.util.Queue;
 import java.util.LinkedList;
 
+// Static Variables
+String VIDEO_NAME = "animate";
+boolean SAVE_VIDEO = false;
+
 int IMAGE_WIDTH = 1080;
 int IMAGE_HEIGHT = 720;
 int FRAME_RATE = 30;
-int MAX_DIAMETER = 5;
+int MAX_DIAMETER = 3;
 
-float DEF_mouthWidth = 12.5435;
-float DEF_mouthHeight = 1.30818;
+String FULL_PATH;
+
+// Default values from which stretchiness is defined
+// Tweak these to larger values if something is moving too much, 
+// smaller values if it's not moving enough to your liking
+float DEF_mouthWidth = 16;
+float DEF_mouthHeight = 4;
 float DEF_leftEyebrowHeight = 7.3091;
 float DEF_rightEyebrowHeight = 7.29965;
 float DEF_leftEyeOpenness = 3.15391;
 float DEF_rightEyeOpenness = 3.11557;
 float DEF_jawOpenness = 22.8165;
-float DEF_nostrilFlare = 5.9854;
 
 float FACE_SCALAR = 1.6;
 
@@ -334,7 +342,54 @@ void loadBrushData(){
   BRUSH_DATA = temp.getJSONArray("planes");
 }
 
+String boolText(boolean b){
+  return (b ? "true" : "false");
+}
+
+public static String combinePath (String path1, String path2)
+{
+    File file1 = new File(path1);
+    File file2 = new File(file1, path2);
+    return file2.getPath();
+}
+
+boolean fileExists(String filename) {
+ File file = new File(filename);
+
+ if(!file.exists()){
+  return false;
+ }
+   
+ return true;
+}
+void handleFolderCreation(){
+  if (SAVE_VIDEO){
+    String path = VIDEO_NAME + "_images" + "/";
+    
+    String filename = "temp";
+    
+    FULL_PATH = dataPath(path);
+    String filePath = combinePath(FULL_PATH, filename);
+    
+    if (fileExists(filePath)){
+      println("ERROR: Folder by this name exists! Will not overwrite.");
+      println(" 1) Rename or move the existing folder");
+      println(" 2) Change the VIDEO_NAME variable at the top of this file");
+      println(" 3) Change SAVE_VIDEO to false to simply watch the animation");
+      exit(); 
+    } else {
+      createOutput(filePath);
+//      File org = new File(filePath);
+//      println(org + "  " + boolText(org.exists()));
+//      println(org);
+//      println(org.delete());
+    }
+  }
+}
+
 void setup(){
+  handleFolderCreation();
+  
   frameRate(FRAME_RATE);
   size(IMAGE_WIDTH, IMAGE_HEIGHT);
   
@@ -521,8 +576,7 @@ void scaleForLayer(String name){
              name == "right_lower_lid"){
     h = rightEyeOpenness(obj) / DEF_leftEyeOpenness;
   } else if (name == "upper_lip" ||
-             name == "lower_lip" ||
-             name == "inside_mouth"){
+             name == "lower_lip"){
     h = getMouthHeight(obj) / DEF_mouthHeight;
     w = getMouthWidth(obj) / DEF_mouthWidth;
   } else if (name == "chin"){
@@ -593,6 +647,8 @@ Pt setupMatrixForLayer(String name, Pt faceOffset){
   
   float angle = findAngle(p1, p2, centroid);
   
+  scaleForLayer(name);
+  
   rotate(-angle);
   
   // scale to match distance from centroid
@@ -610,7 +666,7 @@ Pt setupMatrixForLayer(String name, Pt faceOffset){
 //  
 //  float xScale = xWidth / oldXWidth;
   
-  scaleForLayer(name);
+  
   
 //  scale(yScale, xScale);
   
@@ -645,7 +701,7 @@ void update(){
 
 void drawFace(){
   strokeWeight(1.0);
-  stroke(230);
+  stroke(220);
   
   JSONArray faceVertices = currentFace.getJSONArray("vertices");
   
@@ -753,10 +809,32 @@ void keyPressed() {
   }
 }
 
+String getFrameNumAsString(){
+  String num = str(currentFrame);
+  
+  while (num.length() < 4){
+    num = "0" + num;
+  }
+  
+  return num;
+}
+
+String getFileName(){
+  return combinePath(FULL_PATH, VIDEO_NAME + "_" + getFrameNumAsString() + ".png");
+}
+
 void draw(){
   background(255);
   update();
   
-  drawFace();
+  // While recording, the face in the background will not show
+  if (!SAVE_VIDEO){
+    drawFace();
+  }
+  
   drawDrawingSoFar();
+  
+  if (SAVE_VIDEO){
+    save(getFileName());
+  }
 }
