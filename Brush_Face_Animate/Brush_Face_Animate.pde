@@ -1,5 +1,6 @@
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import java.util.Queue;
 import java.util.LinkedList;
@@ -9,9 +10,21 @@ int IMAGE_HEIGHT = 720;
 int FRAME_RATE = 30;
 int MAX_DIAMETER = 5;
 
+float DEF_mouthWidth = 12.5435;
+float DEF_mouthHeight = 1.30818;
+float DEF_leftEyebrowHeight = 7.3091;
+float DEF_rightEyebrowHeight = 7.29965;
+float DEF_leftEyeOpenness = 3.15391;
+float DEF_rightEyeOpenness = 3.11557;
+float DEF_jawOpenness = 22.8165;
+float DEF_nostrilFlare = 5.9854;
+
+float FACE_SCALAR = 1.6;
+
 ArrayList<Pair> FACE_CONNECTIONS;
 ArrayList<Triplet> FACE_TRIS;
 
+int POINT_TO_DRAW = 0;
 int START_TIME = 0;
 
 JSONArray BRUSH_DATA;
@@ -54,13 +67,13 @@ class Point
   public String layer;
   boolean isNewStroke = false;
   
-  public Point(int x_, int y_, float pressure_, String layer_){
+  public Point(int x_, int y_, float pressure_, String layer_, int timestamp_){
     x = x_;
     y = y_;
     pressure = pressure_;
     layer = layer_;
     
-    timestamp = millis() - START_TIME;
+    timestamp = timestamp_;
   }
   
   int distanceSq(Point p2){
@@ -135,6 +148,7 @@ void addPointToDrawn(Point point){
 
 void loadFeatures(){
   FACE_FEATURES = new HashMap();
+  STATIC_FACE_FEATURES = new HashMap();
   
   BufferedReader reader;
   
@@ -145,6 +159,8 @@ void loadFeatures(){
   String line;
   
   String featureName = "";
+  
+  int yOffset = -50;
   
   while (shouldRead){
     try{
@@ -162,22 +178,36 @@ void loadFeatures(){
       JSONObject json = FACE_VERTEX_FRAMES.getJSONObject(0);
       JSONArray faceVertices = json.getJSONArray("vertices"); 
       
+      
+      
       if (pieces.length == 1){
         // Read feature name line
         featureName = pieces[0];
       } else {
         // Read the associated data
         ArrayList<Integer> points = new ArrayList<Integer>();
-        ArrayList<Pt> staticPoints = new ArrayList<Pt>();
+        ArrayList<Pt> tempPoints = new ArrayList<Pt>();
         
         for (int i = 0; i < pieces.length; i++){
           int vertexNum = int(pieces[i]);
           
-          JSONArray pt = faceVertices.get(vertexNum);
+          JSONArray pt = faceVertices.getJSONArray(vertexNum);
           
-          Pt staticPoint = new Point(pt.get(0), pt.get(1));
+          Pt staticPoint = new Pt(pt.getFloat(0), pt.getFloat(1));
           
           points.add(vertexNum);
+          tempPoints.add(staticPoint);
+        }
+        
+        ArrayList<Pt> staticPoints = new ArrayList<Pt>();
+        Pt faceOffset = findCentroid(tempPoints);
+        
+        for (int i = 0; i < tempPoints.size(); i++){
+          Pt cPt = tempPoints.get(i);
+          
+          Pt staticPoint = new Pt((cPt.x - faceOffset.x) * FACE_SCALAR,
+                                  ((cPt.y - faceOffset.y) * FACE_SCALAR) + yOffset);
+          
           staticPoints.add(staticPoint);
         }
         
@@ -296,8 +326,6 @@ void loadFaceData(){
   loadTris();
   
 //  FACE_VERTICES = json.getJSONArray("vertices");
-  
-
 }
 
 void loadBrushData(){
@@ -307,8 +335,6 @@ void loadBrushData(){
 }
 
 void setup(){
-  toDraw = new LinkedList<Point>();
-  
   frameRate(FRAME_RATE);
   size(IMAGE_WIDTH, IMAGE_HEIGHT);
   
@@ -328,6 +354,52 @@ void setup(){
   loadBrushData();
   
   currentFrame = -1;
+  
+  initializeToDraw();
+}
+
+void initializeToDraw(){
+  toDraw = new LinkedList<Point>();
+  
+  int numStrokes = BRUSH_DATA.size();
+  int numLayers = FACE_LAYERS.length;
+  
+  for (int i = 0; i < numLayers; i++){
+    String currentLayer = FACE_LAYERS[i];
+    
+    for (int j = 0 ; j < numStrokes; j++){
+      JSONObject obj = BRUSH_DATA.getJSONObject(j);
+      
+      String name = obj.getString("name");
+      
+      if (name.equals(currentLayer)){
+        JSONArray arr = obj.getJSONArray("stroke");
+        
+        JSONObject temp = arr.getJSONObject(0);
+        
+        JSONArray points = temp.getJSONArray("points");
+        
+        for (int k = 0; k < points.size(); k++){
+          JSONObject jsonPt = points.getJSONObject(k);
+
+          int x = jsonPt.getInt("x");
+          int y = jsonPt.getInt("y");
+          float pressure = jsonPt.getFloat("pressure");
+          int timestamp = jsonPt.getInt("timestamp");
+          
+          Point point = new Point(x, y, pressure, name, timestamp);
+          
+          if (k == 0){
+            point.isNewStroke = true;
+          }
+          
+          toDraw.add(point);
+        }
+      }
+    }
+  }
+  
+  
 }
 
 Pt findCentroid(ArrayList<Pt> points){
@@ -360,15 +432,18 @@ float findAngle(Pt p0, Pt p1, Pt c) {
 }
 
 ArrayList<Pt> getCurrentFacePointsForLayer(String name){
-  ArrayList<Integer> pointNums = FACE_FEATURES.get(name);
-  JSONArray arr = FACE_VERTEX_FRAMES.get(currentFrame);
+  ArrayList<Integer> pointNums = (ArrayList<Integer>)FACE_FEATURES.get(name);
+  
+  JSONObject obj = FACE_VERTEX_FRAMES.getJSONObject(currentFrame);
+  
+  JSONArray arr = obj.getJSONArray("vertices");
   
   ArrayList<Pt> result = new ArrayList<Pt>();
   
   for (int i = 0; i < pointNums.size(); i++){
     int pointNum = pointNums.get(i);
-    JSONArray pointArr = arr.get(pointNum);
-    Pt pt = new Pt(pointArr.get(0), pointArr.get(1));
+    JSONArray pointArr = arr.getJSONArray(pointNum);
+    Pt pt = new Pt(pointArr.getFloat(0), pointArr.getFloat(1));
     
     result.add(pt);
   }
@@ -376,8 +451,89 @@ ArrayList<Pt> getCurrentFacePointsForLayer(String name){
   return result;
 }
 
-void setupMatrixForLayer(String name){
-  ArrayList<Pt> points = STATIC_FACE_FEATURES.get(name);
+Pt getFaceMotion(String name){
+  ArrayList<Pt> points = (ArrayList<Pt>)STATIC_FACE_FEATURES.get(name);
+  ArrayList<Pt> transformedPoints = getCurrentFacePointsForLayer(name);
+  
+  if (points == null || points.size() == 0){
+    return null;
+  }
+  
+  // line up centroids
+  Pt centroid = findCentroid(transformedPoints);
+  Pt oldCentroid = findCentroid(points);
+  
+  Pt delta = new Pt(centroid.x - oldCentroid.x, centroid.y - oldCentroid.y);
+  
+  return delta;
+}
+
+float getMouthWidth(JSONObject obj){
+  float mouthWidth = obj.getFloat("mouthWidth");
+  return mouthWidth;
+}
+
+float getMouthHeight(JSONObject obj){
+  float mouthHeight = obj.getFloat("mouthHeight");
+  return mouthHeight;
+}
+
+float getLeftEyebrowHeight(JSONObject obj){
+  float leftEyebrowHeight = obj.getFloat("leftEyebrowHeight");
+  return leftEyebrowHeight;
+}
+
+float getRightEyebrowHeight(JSONObject obj){
+  float rightEyebrowHeight = obj.getFloat("rightEyebrowHeight");
+  return rightEyebrowHeight;
+}
+
+float jawOpenness(JSONObject obj){
+  float jawOpenness = obj.getFloat("jawOpenness");
+  return jawOpenness;
+}
+
+float leftEyeOpenness(JSONObject obj){
+  float leftEyeOpenness = obj.getFloat("leftEyeOpenness"); 
+  return leftEyeOpenness;
+}
+
+float rightEyeOpenness(JSONObject obj){
+  float rightEyeOpenness = obj.getFloat("rightEyeOpenness");
+  return rightEyeOpenness;
+}
+
+
+void scaleForLayer(String name){
+  JSONObject obj = FACE_VERTEX_FRAMES.getJSONObject(currentFrame);
+  
+  float h = 1.0;
+  float w = 1.0;
+  
+  if (name == "left_eyebrow"){
+    h = getLeftEyebrowHeight(obj) / DEF_leftEyebrowHeight;
+  } else if (name == "right_eyebrow") {
+    h = getRightEyebrowHeight(obj) / DEF_leftEyebrowHeight;
+  } else if (name == "left_upper_lid" ||
+             name == "left_lower_lid"){
+    h = leftEyeOpenness(obj) / DEF_leftEyeOpenness;
+  } else if (name == "right_upper_lid" ||
+             name == "right_lower_lid"){
+    h = rightEyeOpenness(obj) / DEF_leftEyeOpenness;
+  } else if (name == "upper_lip" ||
+             name == "lower_lip" ||
+             name == "inside_mouth"){
+    h = getMouthHeight(obj) / DEF_mouthHeight;
+    w = getMouthWidth(obj) / DEF_mouthWidth;
+  } else if (name == "chin"){
+    h = jawOpenness(obj) / DEF_jawOpenness;
+  }
+  
+  scale(w, h);
+}
+
+Pt setupMatrixForLayer(String name, Pt faceOffset){
+  ArrayList<Pt> points = (ArrayList<Pt>)STATIC_FACE_FEATURES.get(name);
   ArrayList<Pt> transformedPoints = getCurrentFacePointsForLayer(name);
   
   if (points == null || points.size() == 0){
@@ -390,8 +546,8 @@ void setupMatrixForLayer(String name){
   
   translate(centroid.x, centroid.y);
   
-  Pt delta = new Pt(-oldCentroid.x, 
-                    -oldCentroid.y);
+  Pt delta = new Pt(centroid.x-oldCentroid.x, 
+                    centroid.y-oldCentroid.y);
   
   Pt widestPoint = null;
   Pt tallestPoint = null;
@@ -437,24 +593,28 @@ void setupMatrixForLayer(String name){
   
   float angle = findAngle(p1, p2, centroid);
   
-  rotate(angle);
+  rotate(-angle);
   
   // scale to match distance from centroid
-  Pt tP = transformedPoints.get(tallestPointNum);
+//  Pt tP = transformedPoints.get(tallestPointNum);
+//  
+//  float yHeight = abs(tP.y - centroid.y);
+//  float oldYHeight = abs(tallestPoint.y - centroid.y);
+//  
+//  float yScale = yHeight / oldYHeight;
+//  
+//  tP = transformedPoints.get(widestPointNum);
+//  
+//  float xWidth = abs(tP.x - centroid.x);
+//  float oldXWidth = abs(tallestPoint.x - centroid.x);
+//  
+//  float xScale = xWidth / oldXWidth;
   
-  float yHeight = abs(tP.y - centroid.y);
-  float oldYHeight = abs(tallestPoint.y - centroid.y);
+  scaleForLayer(name);
   
-  float yScale = yHeight / oldYHeight;
+//  scale(yScale, xScale);
   
-  tP = transformedPoints.get(widestPointNum);
-  
-  float xWidth = abs(tP.x - centroid.x);
-  float oldXWidth = abs(tallestPoint.x - centroid.x);
-  
-  float xScale = xWidth / oldXWidth;
-  
-  scale(xScale, yScale);
+//  println(xScale, yScale);
   
   return centroid;
 }
@@ -484,6 +644,9 @@ void update(){
 }
 
 void drawFace(){
+  strokeWeight(1.0);
+  stroke(230);
+  
   JSONArray faceVertices = currentFace.getJSONArray("vertices");
   
   for (int i = 0; i < FACE_CONNECTIONS.size(); i++){
@@ -511,7 +674,14 @@ void drawDrawingSoFar(){
     if (strokes != null){
       pushMatrix();
       
-      Pt centroid = setupMatrixForLayer(name);
+      Pt faceOffset = getFaceMotion(name);
+      
+      translate(faceOffset.x, faceOffset.y);
+      
+      pushMatrix();
+      
+      Pt centroid = setupMatrixForLayer(name, faceOffset);
+//      Pt centroid = new Pt(0, 0);
       
       for (int j = 0; j < strokes.size(); j++){
         Stroke stroke = strokes.get(j);
@@ -522,6 +692,7 @@ void drawDrawingSoFar(){
           Point lastPoint = points.get(0);
           
           strokeWeight(lastPoint.pressure * MAX_DIAMETER);
+          stroke(0);
           
           beginShape();
           
@@ -538,6 +709,46 @@ void drawDrawingSoFar(){
       }
       
       popMatrix();
+      popMatrix();
+    }
+  }
+}
+
+void drawFeatureCentroids(){
+  ArrayList<Pt> tempPoints = new ArrayList<Pt>();
+  
+  Iterator it = FACE_FEATURES.entrySet().iterator();
+  
+  while (it.hasNext()) {
+    Map.Entry pair = (Map.Entry)it.next();
+    
+    String name = (String)pair.getKey();
+    ArrayList<Pt> points = getCurrentFacePointsForLayer(name);
+    
+    Pt point = findCentroid(points);
+  }
+}
+
+void keyPressed() {
+  if (key == CODED) {
+    switch (keyCode){
+      case LEFT:
+        break;
+      
+      case RIGHT:
+        break;
+        
+      case UP:
+        break;
+        
+      case DOWN:
+        break;
+    }
+  } else {
+    if (key == 'w'){
+      POINT_TO_DRAW += 1;
+    } else if (key == 's'){
+      POINT_TO_DRAW -= 1;
     }
   }
 }
