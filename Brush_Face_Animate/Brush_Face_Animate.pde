@@ -5,14 +5,20 @@ import java.util.Iterator;
 import java.util.Queue;
 import java.util.LinkedList;
 
-// Static Variables
-String VIDEO_NAME = "animate";
+// true means each frame will be written into a folder
 boolean SAVE_VIDEO = false;
+// name of the folder in which to save files
+String VIDEO_NAME = "animate";
+// 1.0 is normal speed
+float DRAWING_SPEED = 1600.0;
+// if false, curves will auto fill their space with white
+boolean NO_FILL = true;
+
 
 int IMAGE_WIDTH = 1080;
 int IMAGE_HEIGHT = 720;
 int FRAME_RATE = 30;
-int MAX_DIAMETER = 3;
+int MAX_PEN_DIAMETER = 16;
 
 String FULL_PATH;
 
@@ -30,7 +36,6 @@ float DEF_jawOpenness = 22.8165;
 float FACE_SCALAR = 1.6;
 
 ArrayList<Pair> FACE_CONNECTIONS;
-ArrayList<Triplet> FACE_TRIS;
 
 int POINT_TO_DRAW = 0;
 int START_TIME = 0;
@@ -74,6 +79,7 @@ class Point
   public float pressure;
   public String layer;
   boolean isNewStroke = false;
+  boolean isBlack = true;
   
   public Point(int x_, int y_, float pressure_, String layer_, int timestamp_){
     x = x_;
@@ -99,17 +105,6 @@ class Pair
   public Pair(int p1_, int p2_){
     p1 = p1_;
     p2 = p2_;
-  }
-}
-
-class Triplet
-{
-  public int p1, p2, p3;
-  
-  public Triplet(int p1_, int p2_, int p3_){
-    p1 = p1_;
-    p2 = p2_;
-    p3 = p3_;
   }
 }
 
@@ -260,41 +255,6 @@ void loadConnections(){
   }
 }
 
-void loadTris(){
-  BufferedReader reader;
-  
-  reader = createReader("data/face.tri");
-  
-  boolean shouldRead = true;
-  
-  FACE_TRIS = new ArrayList<Triplet>();
-  
-  String line;
-  
-  while (shouldRead){
-    try{
-      line = reader.readLine();
-    } catch (IOException e){
-      e.printStackTrace();
-      line = null;
-    }
-    
-    if (line == null){
-      shouldRead = false;
-    } else {
-      String[] pieces = split(line, ' ');
-      
-      int p1 = int(pieces[0]);
-      int p2 = int(pieces[1]);
-      int p3 = int(pieces[2]);
-      
-      Triplet triplet = new Triplet(p1, p2, p3);
-      
-      FACE_TRIS.add(triplet);
-    }
-  }
-}
-
 //void modifyFaceVertices(){
 //  float halfWidth = (IMAGE_WIDTH/2.0);
 //  float halfHeight = (IMAGE_HEIGHT/2.0);
@@ -331,7 +291,6 @@ void loadFaceData(){
   
   loadFeatures();
   loadConnections();
-  loadTris();
   
 //  FACE_VERTICES = json.getJSONArray("vertices");
 }
@@ -379,10 +338,6 @@ void handleFolderCreation(){
       exit(); 
     } else {
       createOutput(filePath);
-//      File org = new File(filePath);
-//      println(org + "  " + boolText(org.exists()));
-//      println(org);
-//      println(org.delete());
     }
   }
 }
@@ -413,11 +368,42 @@ void setup(){
   initializeToDraw();
 }
 
-void initializeToDraw(){
+void initAddStroke(JSONArray points, String name){
+  for (int k = 0; k < points.size(); k++){
+    JSONObject jsonPt = points.getJSONObject(k);
+
+    int x = jsonPt.getInt("x");
+    int y = jsonPt.getInt("y");
+    float pressure = jsonPt.getFloat("pressure");
+    int timestamp = jsonPt.getInt("timestamp");
+    boolean isBlack = jsonPt.getBoolean("isBlack", true);
+    
+    Point point = new Point(x, y, pressure, name, timestamp);
+    
+    point.isBlack = isBlack;
+    
+    if (k == 0){
+      point.isNewStroke = true;
+    }
+    
+    toDraw.add(point);
+  }
+}
+
+void initializeToDraw2(){
   toDraw = new LinkedList<Point>();
   
   int numStrokes = BRUSH_DATA.size();
   int numLayers = FACE_LAYERS.length;
+  
+  int lastTimestamp = MIN_INT;
+  int currentTimestamp = MAX_INT;
+  String currentName = "";
+  
+  JSONArray nextStroke;
+  
+  nextStroke = null;
+  currentTimestamp = MAX_INT;
   
   for (int i = 0; i < numLayers; i++){
     String currentLayer = FACE_LAYERS[i];
@@ -434,27 +420,68 @@ void initializeToDraw(){
         
         JSONArray points = temp.getJSONArray("points");
         
-        for (int k = 0; k < points.size(); k++){
-          JSONObject jsonPt = points.getJSONObject(k);
-
-          int x = jsonPt.getInt("x");
-          int y = jsonPt.getInt("y");
-          float pressure = jsonPt.getFloat("pressure");
-          int timestamp = jsonPt.getInt("timestamp");
-          
-          Point point = new Point(x, y, pressure, name, timestamp);
-          
-          if (k == 0){
-            point.isNewStroke = true;
-          }
-          
-          toDraw.add(point);
-        }
+        JSONObject jsonPt = points.getJSONObject(0);
+        
+        initAddStroke(points, name);
       }
     }
   }
   
+  return;
+}
+
+void initializeToDraw(){
+  toDraw = new LinkedList<Point>();
   
+  
+  int numLayers = BRUSH_DATA.size();
+  
+  int lastTimestamp = MIN_INT;
+  int currentTimestamp = MAX_INT;
+  String currentName = "";
+  
+  JSONArray nextStroke;
+  
+  while (true){
+    nextStroke = null;
+    currentTimestamp = MAX_INT;
+    
+    for (int i = 0; i < numLayers; i++){
+      JSONObject obj = BRUSH_DATA.getJSONObject(i);
+      JSONArray arr = obj.getJSONArray("stroke");
+      
+      int numStrokes = arr.size();
+      
+      String name = obj.getString("name");
+      
+//      if (name.equals(currentLayer)){
+      for (int j = 0 ; j < numStrokes; j++){ 
+        
+          JSONObject temp = arr.getJSONObject(j);
+          
+          JSONArray points = temp.getJSONArray("points");
+          
+          JSONObject jsonPt = points.getJSONObject(0);
+          int timestamp = jsonPt.getInt("timestamp");
+          
+          println(lastTimestamp, timestamp, currentTimestamp);
+          if (lastTimestamp < timestamp && timestamp < currentTimestamp){
+            currentTimestamp = timestamp;
+            currentName = name;
+            nextStroke = points;
+            break;
+          }
+        }
+    }
+    
+    lastTimestamp = currentTimestamp;
+    
+    if (nextStroke != null){
+      initAddStroke(nextStroke, currentName);
+    } else {
+      return;
+    }
+  }
 }
 
 Pt findCentroid(ArrayList<Pt> points){
@@ -488,6 +515,8 @@ float findAngle(Pt p0, Pt p1, Pt c) {
 
 ArrayList<Pt> getCurrentFacePointsForLayer(String name){
   ArrayList<Integer> pointNums = (ArrayList<Integer>)FACE_FEATURES.get(name);
+  
+  if (pointNums == null) return null;
   
   JSONObject obj = FACE_VERTEX_FRAMES.getJSONObject(currentFrame);
   
@@ -651,32 +680,11 @@ Pt setupMatrixForLayer(String name, Pt faceOffset){
   
   rotate(-angle);
   
-  // scale to match distance from centroid
-//  Pt tP = transformedPoints.get(tallestPointNum);
-//  
-//  float yHeight = abs(tP.y - centroid.y);
-//  float oldYHeight = abs(tallestPoint.y - centroid.y);
-//  
-//  float yScale = yHeight / oldYHeight;
-//  
-//  tP = transformedPoints.get(widestPointNum);
-//  
-//  float xWidth = abs(tP.x - centroid.x);
-//  float oldXWidth = abs(tallestPoint.x - centroid.x);
-//  
-//  float xScale = xWidth / oldXWidth;
-  
-  
-  
-//  scale(yScale, xScale);
-  
-//  println(xScale, yScale);
-  
   return centroid;
 }
 
 int currentTime(){
-  return millis() + START_TIME;
+  return int(floor((millis() * DRAWING_SPEED) + START_TIME));
 }
 
 void addVisibleBrushPoints(){
@@ -722,6 +730,11 @@ void drawFace(){
 }
 
 void drawDrawingSoFar(){
+  
+  if (NO_FILL){
+    noFill();
+  }
+  
   for (int i = 0; i < FACE_LAYERS.length; i++){
     String name = FACE_LAYERS[i];
     
@@ -732,12 +745,17 @@ void drawDrawingSoFar(){
       
       Pt faceOffset = getFaceMotion(name);
       
-      translate(faceOffset.x, faceOffset.y);
+      if (faceOffset != null){
+        translate(faceOffset.x, faceOffset.y);
+      }
       
       pushMatrix();
       
       Pt centroid = setupMatrixForLayer(name, faceOffset);
-//      Pt centroid = new Pt(0, 0);
+      
+      if (centroid == null){
+        centroid = new Pt(0, 0);
+      }
       
       for (int j = 0; j < strokes.size(); j++){
         Stroke stroke = strokes.get(j);
@@ -747,8 +765,12 @@ void drawDrawingSoFar(){
         if (points.size() > 0){
           Point lastPoint = points.get(0);
           
-          strokeWeight(lastPoint.pressure * MAX_DIAMETER);
-          stroke(0);
+          strokeWeight(lastPoint.pressure * MAX_PEN_DIAMETER);
+          if (lastPoint.isBlack){
+            stroke(0);
+          } else {
+            stroke(255);
+          }
           
           beginShape();
           

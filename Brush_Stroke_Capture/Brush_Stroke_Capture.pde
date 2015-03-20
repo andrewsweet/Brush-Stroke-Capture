@@ -2,13 +2,20 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.HashMap;
 
+// TABLET_MODE = true means always draw when the mouse moves
+boolean TABLET_MODE = false;
+
 int IMAGE_WIDTH = 1080;
 int IMAGE_HEIGHT = 720;
 int FRAME_RATE = 30;
-int MAX_DIAMETER = 5;
-HashMap PLANES;
+int MAX_PEN_DIAMETER = 16;
+
+float currentPressure = 0.5;
+float MAX_NUM_PRESSURES = 10.0;
 
 String[] FACE_LAYERS;
+
+HashMap PLANES;
 
 int START_TIME;
 
@@ -22,8 +29,9 @@ color selectedColor;
 int currentPlaneNum;
 Stroke currentStroke;
 
+boolean isBlackSelected = true;
+
 ArrayList<Pair> FACE_CONNECTIONS;
-ArrayList<Triplet> FACE_TRIS;
 
 void clearCachedData(){
   PLANES = new HashMap();
@@ -36,17 +44,6 @@ class Pair
   public Pair(int p1_, int p2_){
     p1 = p1_;
     p2 = p2_;
-  }
-}
-
-class Triplet
-{
-  public int p1, p2, p3;
-  
-  public Triplet(int p1_, int p2_, int p3_){
-    p1 = p1_;
-    p2 = p2_;
-    p3 = p3_;
   }
 }
 
@@ -85,8 +82,11 @@ class Stroke
 {
   public ArrayList<Point> points;
   
+  public boolean isBlack;
+  
   public Stroke(){
     points = new ArrayList<Point>();
+    isBlack = isBlackSelected;
   }
   
   public void addPoint(Point pt){
@@ -142,6 +142,7 @@ void saveData() {
         }
         
         stroke.setJSONArray("points", points);
+        stroke.setBoolean("isBlack", currentStroke.isBlack);
         
         strokes.setJSONObject(i, stroke);
       }
@@ -183,8 +184,12 @@ void animate(){
   println("Animation complete!");
 }
 
+String getPlaneName(int planeNum){
+  return FACE_LAYERS[planeNum];
+}
+
 ArrayList<Stroke> getPlane(int planeNum){
-  String name = FACE_LAYERS[planeNum];
+  String name = getPlaneName(planeNum);
   
   ArrayList<Stroke> plane = (ArrayList<Stroke>)PLANES.get(name);
    
@@ -213,7 +218,12 @@ Stroke getCurrentStroke(){
 
 int SELECTED_VERTEX;
 
+void printInstructions(){
+}
+
 void setup() {
+  printInstructions();
+  
   SELECTED_VERTEX = 0;
   
   START_TIME = millis();
@@ -241,11 +251,8 @@ void setup() {
   selectedColor = color(0);
   
   loadFaceData();
-//  drawTris();
   drawFace();
   drawFacePoints();
-  
-  
 }
 
 void addPoint(float pressure){
@@ -258,7 +265,7 @@ void addPoint(float pressure){
       
       stroke.addPoint(pt);
       
-      strokeWeight(MAX_DIAMETER * pressure);
+      strokeWeight(MAX_PEN_DIAMETER * pressure);
       line(lastMouse.x, lastMouse.y, pt.x, pt.y);
     }
   }
@@ -268,8 +275,8 @@ void addPoint(float pressure){
 
 void update() {
   if (!isAnimating){
-    if (mousePressed){
-      addPoint(0.9);
+    if (mousePressed || TABLET_MODE){
+      addPoint(currentPressure);
     } else {
       lastMouse = null;
       currentStroke = null;
@@ -315,41 +322,6 @@ void loadConnections(){
   }
 }
 
-void loadTris(){
-  BufferedReader reader;
-  
-  reader = createReader("data/face.tri");
-  
-  boolean shouldRead = true;
-  
-  FACE_TRIS = new ArrayList<Triplet>();
-  
-  String line;
-  
-  while (shouldRead){
-    try{
-      line = reader.readLine();
-    } catch (IOException e){
-      e.printStackTrace();
-      line = null;
-    }
-    
-    if (line == null){
-      shouldRead = false;
-    } else {
-      String[] pieces = split(line, ' ');
-      
-      int p1 = int(pieces[0]);
-      int p2 = int(pieces[1]);
-      int p3 = int(pieces[2]);
-      
-      Triplet triplet = new Triplet(p1, p2, p3);
-      
-      FACE_TRIS.add(triplet);
-    }
-  }
-}
-
 void modifyFaceVertices(){
   float halfWidth = (IMAGE_WIDTH/2.0);
   float halfHeight = (IMAGE_HEIGHT/2.0);
@@ -383,7 +355,6 @@ void loadFaceData(){
   JSONObject json = jsonArray.getJSONObject(0);
   
   loadConnections();
-  loadTris();
   
   FACE_VERTICES = json.getJSONArray("vertices");
   
@@ -391,6 +362,7 @@ void loadFaceData(){
 }
 
 void drawFace(){
+  stroke(0);
   for (int i = 0; i < FACE_CONNECTIONS.size(); i++){
     Pair pair = FACE_CONNECTIONS.get(i);
     
@@ -404,6 +376,16 @@ void drawFace(){
     float y2 = a2.getFloat(1);
     
     line(x1, y1, x2, y2);
+  }
+}
+
+void toggleBlackWhite(){
+  isBlackSelected = !isBlackSelected;
+  
+  if (isBlackSelected){
+    selectedColor = color(0);
+  } else {
+    selectedColor = color(255);
   }
 }
 
@@ -423,27 +405,6 @@ void drawFacePoints(){
     }
     
     ellipse(x, y, 2, 2);
-  }
-}
-
-void drawTris(){
-  for (int i = 0; i < FACE_TRIS.size(); i++){
-    Triplet triplet = FACE_TRIS.get(i);
-    
-    JSONArray a1 = FACE_VERTICES.getJSONArray(triplet.p1);
-    JSONArray a2 = FACE_VERTICES.getJSONArray(triplet.p2);
-    JSONArray a3 = FACE_VERTICES.getJSONArray(triplet.p2);
-    
-    float x1 = a1.getFloat(0);
-    float y1 = a1.getFloat(1);
-    
-    float x2 = a2.getFloat(0);
-    float y2 = a2.getFloat(1);
-    
-    float x3 = a3.getFloat(0);
-    float y3 = a3.getFloat(1);
-    
-    triangle(x1, y1, x2, y2, x3, y3);
   }
 }
 
@@ -469,7 +430,9 @@ void keyPressed() {
         break;
     }
   } else {
-    if (key == 'w'){
+    if (key == 'z'){
+      toggleBlackWhite();
+    } else if (key == 'w'){
       saveData();
     } else if (key == 's'){
       if (!isAnimating){
@@ -478,6 +441,26 @@ void keyPressed() {
     } else if (key == 'r'){
       START_TIME = millis();
       clearCachedData();
+    } else if (key == '1'){
+      currentPressure = 1.0/MAX_NUM_PRESSURES;
+    } else if (key == '2'){
+      currentPressure = 2.0/MAX_NUM_PRESSURES;
+    } else if (key == '3'){
+      currentPressure = 3.0/MAX_NUM_PRESSURES;
+    } else if (key == '4'){
+      currentPressure = 4.0/MAX_NUM_PRESSURES;
+    } else if (key == '5'){
+      currentPressure = 5.0/MAX_NUM_PRESSURES;
+    } else if (key == '6'){
+      currentPressure = 6.0/MAX_NUM_PRESSURES;
+    } else if (key == '7'){
+      currentPressure = 7.0/MAX_NUM_PRESSURES;
+    } else if (key == '8'){
+      currentPressure = 8.0/MAX_NUM_PRESSURES;
+    } else if (key == '9'){
+      currentPressure = 9.0/MAX_NUM_PRESSURES;
+    } else if (key == '0'){
+      currentPressure = 10.0/MAX_NUM_PRESSURES;
     }
   }
 }
@@ -489,6 +472,8 @@ void drawAllStrokes(){
   
   noFill();
   
+  String currentPlaneName = getPlaneName(currentPlaneNum);
+  
   while (iter.hasNext()){
     Map.Entry me = (Map.Entry)iter.next();
     
@@ -497,12 +482,33 @@ void drawAllStrokes(){
     
     int numStrokes = currentPlane.size();
     
+    color black;
+    color white;
+    
+    if (currentPlaneName == name){
+      black = color(0);
+      white = color(255);
+    } else {
+      black = color(120);
+      white = color(200);
+    }
+    
     for (int i = 0; i < numStrokes; i++){
       Stroke currentStroke = currentPlane.get(i);
+      
+      if (currentStroke.isBlack){
+        stroke(black);
+      } else {
+        stroke(white);
+      }
       
       ArrayList<Point> capturedPoints = currentStroke.points;
       
       int numCapturedPoints = capturedPoints.size();
+      
+      Point pt = capturedPoints.get(0);
+      
+      strokeWeight(pt.pressure * MAX_PEN_DIAMETER);
       
       beginShape();
       
@@ -545,14 +551,34 @@ void drawCurrentLayerName(){
   
   fill(150);
   text(nextText, 10, yOffset);
-  fill(selectedColor);
+  fill(0, 60, 0);
   text(text, 10, yOffset + spacing);
   fill(150);
   text(prevText, 10, yOffset + (spacing * 2));
 }
 
+void drawBrush(){
+  float halfDiam = (MAX_PEN_DIAMETER/2.0) ;
+  float currentDiam = currentPressure * MAX_PEN_DIAMETER + (2 - (2 * currentPressure));
+  
+  color opposite;
+  
+  if (isBlackSelected){
+    opposite = color(255);
+  } else {
+    opposite = color(0);
+  }
+  
+  strokeWeight(1);
+  stroke(opposite);
+  fill(selectedColor);
+  
+  ellipse(halfDiam, 60 + halfDiam, currentDiam, currentDiam);
+}
+
 void drawUI(){
   drawCurrentLayerName();
+  drawBrush();
 }
 
 void draw() {
@@ -567,7 +593,7 @@ void draw() {
   drawFace();
   drawFacePoints();
   
-  strokeWeight(MAX_DIAMETER);
+  strokeWeight(MAX_PEN_DIAMETER);
   
   drawAllStrokes();
   

@@ -1,0 +1,533 @@
+{
+  "fps": 30,
+  "planes": [{
+    "stroke": [
+      {
+        "points": [
+          {
+            "timestamp": 1664,
+            "pressure": 0.5,
+            "y": 217,
+            "x": 345
+          },
+          {
+            "timestamp": 1697,
+            "pressure": 0.5,
+            "y": 233,
+            "x": 345
+          },
+          {
+            "timestamp": 1731,
+            "pressure": 0.5,
+            "y": 262,
+            "x": 345
+          },
+          {
+            "timestamp": 1765,
+            "pressure": 0.5,
+            "y": 283,
+            "x": 345
+          },
+          {
+            "timestamp": 1799,
+            "pressure": 0.5,
+            "y": 301,
+            "x": 345
+          },
+          {
+            "timestamp": 1832,
+            "pressure": 0.5,
+            "y": 310,
+            "x": 348
+          },
+          {
+            "timestamp": 1863,
+            "pressure": 0.5,
+            "y": 313,
+            "x": 349
+          }
+        ],
+        "isBlack": true
+      },
+      {
+        "points": [
+          {
+            "timestamp": 2464,
+            "pressure": 0.5,
+            "y": 249,
+            "x": 358
+          },
+          {
+            "timestamp": 2497,
+            "pressure": 0.5,
+            "y": 265,
+            "x": 358
+          },
+          {
+            "timestamp": 2533,
+            "pressure": 0.5,
+            "y": 278,
+            "x": 358
+          },
+          {
+            "timestamp": 2565,
+            "pressure": 0.5,
+            "y": 290,
+            "x": 360
+          },
+          {
+            "timestamp": 2597,
+            "pressure": 0.5,
+            "y": 297,
+            "x": 362
+          },
+          {
+            "timestamp": 2632,
+            "pressure": 0.5,
+            "y": 301,
+            "x": 364
+          }
+        ],
+        "isBlack": true
+      },
+      {
+        "points": [
+          {
+            "timestamp": 3198,
+            "pressure": 0.5,
+            "y": 237,
+            "x": 384
+          },
+          {
+            "timestamp": 3232,
+            "pressure": 0.5,
+            "y": 253,
+            "x": 384
+          },
+          {
+            "timestamp": 3264,
+            "pressure": 0.5,
+            "y": 272,
+            "x": 384
+          },
+          {
+            "timestamp": 3299,
+            "pressure": 0.5,
+            "y": 295,
+            "x": 384
+          },
+          {
+            "timestamp": 3332,
+            "pressure": 0.5,
+            "y": 313,
+            "x": 386
+          },
+          {
+            "timestamp": 3365,
+            "pressure": 0.5,
+            "y": 323,
+            "x": 388
+          },
+          {
+            "timestamp": 3397,
+            "pressure": 0.5,
+            "y": 324,
+            "x": 389
+          }
+        ],
+        "isBlack": true
+      },
+      {
+        "points": [
+          {
+            "timestamp": 3998,
+            "pressure": 0.5,
+            "y": 228,
+            "x": 411
+          },
+          {
+            "timestamp": 4030,
+            "pressure": 0.5,
+            "y": 238,
+            "x": 411
+          },
+          {
+            "timestamp": 4066,
+            "pressure": 0.5,
+            "y": 259,
+            "x": 411
+          },
+          {
+            "timestamp": 4099,
+            "pressure": 0.5,
+            "y": 277,
+            "x": 411
+          },
+          {
+            "timestamp": 4133,
+            "pressure": 0.5,
+            "y": 296,
+            "x": 411
+          },
+          {
+            "timestamp": 4165,
+            "pressure": 0.5,
+            "y": 309,
+            "x": 414
+          },
+          {
+            "timestamp": 4198,
+            "pressure": 0.5,
+            "y": 315,
+            "x": 417
+          },
+          {
+            "timestamp": 4235,
+            "pressure": 0.5,
+            "y": 321,
+            "x": 419
+          }
+        ],
+        "isBlack": true
+      },
+      {
+        "points": [
+          {
+            "timestamp": 4935,
+            "pressure": 0.5,
+            "y": 260,
+            "x": 437
+          },
+          {
+            "timestamp": 4966,
+            "pressure": 0.5,
+            "y": 273,
+            "x": 437
+          },
+          {
+            "timestamp": 4999,
+            "pressure": 0.5,
+            "y": 287,
+            "x": 437
+          },
+          {
+            "timestamp": 5033,
+            "pressure": 0.5,
+            "y": 295,
+            "x": 437
+          },
+          {
+            "timestamp": 5068,
+            "pressure": 0.5,
+            "y": 300,
+            "x": 439
+          },
+          {
+            "timestamp": 5099,
+            "pressure": 0.5,
+            "y": 302,
+            "x": 440
+          }
+        ],
+        "isBlack": true
+      },
+      {
+        "points": [
+          {
+            "timestamp": 5867,
+            "pressure": 0.5,
+            "y": 234,
+            "x": 451
+          },
+          {
+            "timestamp": 5899,
+            "pressure": 0.5,
+            "y": 248,
+            "x": 451
+          },
+          {
+            "timestamp": 5934,
+            "pressure": 0.5,
+            "y": 265,
+            "x": 452
+          },
+          {
+            "timestamp": 5968,
+            "pressure": 0.5,
+            "y": 277,
+            "x": 453
+          },
+          {
+            "timestamp": 6001,
+            "pressure": 0.5,
+            "y": 290,
+            "x": 456
+          },
+          {
+            "timestamp": 6032,
+            "pressure": 0.5,
+            "y": 305,
+            "x": 461
+          },
+          {
+            "timestamp": 6066,
+            "pressure": 0.5,
+            "y": 321,
+            "x": 466
+          },
+          {
+            "timestamp": 6100,
+            "pressure": 0.5,
+            "y": 328,
+            "x": 468
+          }
+        ],
+        "isBlack": true
+      },
+      {
+        "points": [
+          {
+            "timestamp": 7167,
+            "pressure": 0.5,
+            "y": 261,
+            "x": 496
+          },
+          {
+            "timestamp": 7199,
+            "pressure": 0.5,
+            "y": 269,
+            "x": 496
+          },
+          {
+            "timestamp": 7233,
+            "pressure": 0.5,
+            "y": 276,
+            "x": 498
+          },
+          {
+            "timestamp": 7268,
+            "pressure": 0.5,
+            "y": 283,
+            "x": 499
+          },
+          {
+            "timestamp": 7299,
+            "pressure": 0.5,
+            "y": 291,
+            "x": 499
+          },
+          {
+            "timestamp": 7333,
+            "pressure": 0.5,
+            "y": 299,
+            "x": 502
+          },
+          {
+            "timestamp": 7367,
+            "pressure": 0.5,
+            "y": 306,
+            "x": 502
+          },
+          {
+            "timestamp": 7401,
+            "pressure": 0.5,
+            "y": 314,
+            "x": 504
+          },
+          {
+            "timestamp": 7433,
+            "pressure": 0.5,
+            "y": 320,
+            "x": 504
+          },
+          {
+            "timestamp": 7467,
+            "pressure": 0.5,
+            "y": 325,
+            "x": 504
+          },
+          {
+            "timestamp": 7499,
+            "pressure": 0.5,
+            "y": 328,
+            "x": 505
+          },
+          {
+            "timestamp": 7534,
+            "pressure": 0.5,
+            "y": 330,
+            "x": 505
+          },
+          {
+            "timestamp": 7568,
+            "pressure": 0.5,
+            "y": 331,
+            "x": 505
+          }
+        ],
+        "isBlack": true
+      },
+      {
+        "points": [
+          {
+            "timestamp": 8601,
+            "pressure": 0.5,
+            "y": 255,
+            "x": 528
+          },
+          {
+            "timestamp": 8635,
+            "pressure": 0.5,
+            "y": 261,
+            "x": 528
+          },
+          {
+            "timestamp": 8667,
+            "pressure": 0.5,
+            "y": 267,
+            "x": 530
+          },
+          {
+            "timestamp": 8701,
+            "pressure": 0.5,
+            "y": 273,
+            "x": 531
+          },
+          {
+            "timestamp": 8733,
+            "pressure": 0.5,
+            "y": 278,
+            "x": 532
+          },
+          {
+            "timestamp": 8767,
+            "pressure": 0.5,
+            "y": 283,
+            "x": 533
+          },
+          {
+            "timestamp": 8799,
+            "pressure": 0.5,
+            "y": 292,
+            "x": 534
+          },
+          {
+            "timestamp": 8836,
+            "pressure": 0.5,
+            "y": 299,
+            "x": 535
+          },
+          {
+            "timestamp": 8868,
+            "pressure": 0.5,
+            "y": 304,
+            "x": 536
+          },
+          {
+            "timestamp": 8899,
+            "pressure": 0.5,
+            "y": 307,
+            "x": 536
+          },
+          {
+            "timestamp": 8934,
+            "pressure": 0.5,
+            "y": 309,
+            "x": 536
+          },
+          {
+            "timestamp": 8967,
+            "pressure": 0.5,
+            "y": 310,
+            "x": 536
+          },
+          {
+            "timestamp": 9001,
+            "pressure": 0.5,
+            "y": 311,
+            "x": 536
+          },
+          {
+            "timestamp": 9034,
+            "pressure": 0.5,
+            "y": 311,
+            "x": 537
+          },
+          {
+            "timestamp": 9067,
+            "pressure": 0.5,
+            "y": 312,
+            "x": 537
+          },
+          {
+            "timestamp": 9135,
+            "pressure": 0.5,
+            "y": 313,
+            "x": 537
+          },
+          {
+            "timestamp": 9234,
+            "pressure": 0.5,
+            "y": 314,
+            "x": 537
+          }
+        ],
+        "isBlack": true
+      },
+      {
+        "points": [
+          {
+            "timestamp": 11234,
+            "pressure": 0.5,
+            "y": 260,
+            "x": 551
+          },
+          {
+            "timestamp": 11265,
+            "pressure": 0.5,
+            "y": 276,
+            "x": 551
+          },
+          {
+            "timestamp": 11299,
+            "pressure": 0.5,
+            "y": 298,
+            "x": 552
+          },
+          {
+            "timestamp": 11334,
+            "pressure": 0.5,
+            "y": 312,
+            "x": 554
+          },
+          {
+            "timestamp": 11368,
+            "pressure": 0.5,
+            "y": 320,
+            "x": 556
+          },
+          {
+            "timestamp": 11402,
+            "pressure": 0.5,
+            "y": 325,
+            "x": 556
+          },
+          {
+            "timestamp": 11435,
+            "pressure": 0.5,
+            "y": 327,
+            "x": 557
+          },
+          {
+            "timestamp": 11468,
+            "pressure": 0.5,
+            "y": 330,
+            "x": 557
+          }
+        ],
+        "isBlack": true
+      }
+    ],
+    "name": "default_back"
+  }]
+}
