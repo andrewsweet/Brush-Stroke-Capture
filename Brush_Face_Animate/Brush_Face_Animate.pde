@@ -464,7 +464,6 @@ void initializeToDraw(){
           JSONObject jsonPt = points.getJSONObject(0);
           int timestamp = jsonPt.getInt("timestamp");
           
-          println(lastTimestamp, timestamp, currentTimestamp);
           if (lastTimestamp < timestamp && timestamp < currentTimestamp){
             currentTimestamp = timestamp;
             currentName = name;
