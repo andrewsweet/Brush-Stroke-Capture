@@ -19,11 +19,7 @@ HashMap PLANES;
 
 int START_TIME;
 
-int ANIMATION_START_TIME;
-
 int MIN_DRAW_DIST_SQ = 0;
-
-boolean isAnimating = false;
 
 color selectedColor;
 int currentPlaneNum;
@@ -67,7 +63,7 @@ class Point
     y = y_;
     pressure = pressure_;
     
-    timestamp = millis() - START_TIME;
+    timestamp = currentTime();
   }
   
   int distanceSq(Point p2){
@@ -165,25 +161,6 @@ void saveData() {
 
 Point lastMouse;
 
-void playAnimation(){
-  isAnimating = true;
-  ANIMATION_START_TIME = millis();
-  
-  println("\nStart animation!");
-}
-
-void animate(){
-  int currentTime = millis() - ANIMATION_START_TIME;
-  
-//  while (currentTime > nextPoint.timestamp){
-//  
-//  }
-
-  
-  isAnimating = false;
-  println("Animation complete!");
-}
-
 String getPlaneName(int planeNum){
   return FACE_LAYERS[planeNum];
 }
@@ -216,15 +193,19 @@ Stroke getCurrentStroke(){
   return currentStroke;
 }
 
-int SELECTED_VERTEX;
-
 void printInstructions(){
+  println("All UI elements are in the top left corner.");
+  println("\nPress UP and DOWN to switch between layers.");
+  println("Press Z to toggle Black and White.");
+  println("Press W to \"[W]rite\" the drawing data to a file after you've drawn.");
+  println("Press R to \"[R]estart\" the timer, and clear all drawing data.");
+  println("Press 1, 2, 3, ... through 0 to choose the brush size.");
+  println("  (it goes from 1 to 9 and then 0 acts at 10)");
+  println("Press H to get \"[H]elp\" by reprinting the instructions");
 }
 
 void setup() {
   printInstructions();
-  
-  SELECTED_VERTEX = 0;
   
   START_TIME = millis();
   clearCachedData();
@@ -258,8 +239,8 @@ void setup() {
 void addPoint(float pressure){
   Point pt = new Point(mouseX, mouseY, pressure);
   
-  if (lastMouse != null){
-    if (mouseX == lastMouse.x && mouseY == lastMouse.y){
+  if (){
+    if (lastMouse != null && mouseX == lastMouse.x && mouseY == lastMouse.y){
     } else {
       Stroke stroke = getCurrentStroke();
       
@@ -274,15 +255,11 @@ void addPoint(float pressure){
 }
 
 void update() {
-  if (!isAnimating){
-    if (mousePressed || TABLET_MODE){
-      addPoint(currentPressure);
-    } else {
-      lastMouse = null;
-      currentStroke = null;
-    }
+  if (mousePressed || TABLET_MODE){
+    addPoint(currentPressure);
   } else {
-    animate();
+    lastMouse = null;
+    currentStroke = null;
   }
 }
 
@@ -396,13 +373,8 @@ void drawFacePoints(){
     float x = arr.getFloat(0);
     float y = arr.getFloat(1);
     
-    if (SELECTED_VERTEX == i){
-      fill(255, 0, 0);
-      stroke(255, 0, 0);
-    } else {
-      fill(0);
-      stroke(0);
-    }
+    fill(0);
+    stroke(0);
     
     ellipse(x, y, 2, 2);
   }
@@ -415,8 +387,6 @@ void keyPressed() {
         break;
       
       case RIGHT:
-        SELECTED_VERTEX = (SELECTED_VERTEX + 1) % FACE_VERTICES.size();
-        println(SELECTED_VERTEX);
         break;
         
       case UP:
@@ -434,10 +404,6 @@ void keyPressed() {
       toggleBlackWhite();
     } else if (key == 'w'){
       saveData();
-    } else if (key == 's'){
-      if (!isAnimating){
-        playAnimation();
-      }
     } else if (key == 'r'){
       START_TIME = millis();
       clearCachedData();
@@ -461,6 +427,8 @@ void keyPressed() {
       currentPressure = 9.0/MAX_NUM_PRESSURES;
     } else if (key == '0'){
       currentPressure = 10.0/MAX_NUM_PRESSURES;
+    } else if (key == 'h'){
+      printInstructions();
     }
   }
 }
@@ -576,9 +544,18 @@ void drawBrush(){
   ellipse(halfDiam, 60 + halfDiam, currentDiam, currentDiam);
 }
 
+void drawTimer(){
+  text(currentTime()/1000.0, 10, 100);
+}
+
 void drawUI(){
   drawCurrentLayerName();
   drawBrush();
+  drawTimer();
+}
+
+int currentTime(){
+  return millis() - START_TIME;
 }
 
 void draw() {
