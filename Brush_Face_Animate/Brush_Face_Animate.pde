@@ -10,7 +10,7 @@ boolean SAVE_VIDEO = false;
 // name of the folder in which to save files
 String VIDEO_NAME = "animate";
 // 1.0 is normal speed
-float DRAWING_SPEED = 1600.0;
+float DRAWING_SPEED = 1.0;
 // if false, curves will auto fill their space with white
 boolean NO_FILL = true;
 
