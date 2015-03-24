@@ -4,15 +4,19 @@ import java.util.Iterator;
 
 import java.util.Queue;
 import java.util.LinkedList;
+import java.util.ListIterator;
 
 // true means each frame will be written into a folder
 boolean SAVE_VIDEO = false;
 // name of the folder in which to save files
 String VIDEO_NAME = "animate";
 // 1.0 is normal speed
-float DRAWING_SPEED = 1.0;
+float DRAWING_SPEED = 200.0;
 // if false, curves will auto fill their space with white
 boolean NO_FILL = true;
+
+boolean LOOP_FACE = true;
+boolean LOOP_DRAWING = true;
 
 int IMAGE_WIDTH = 1080;
 int IMAGE_HEIGHT = 720;
@@ -48,6 +52,7 @@ Point lastPoint;
 String[] FACE_LAYERS;
 
 Queue<Point> toDraw;
+LinkedList<Point> toDrawLoop;
 
 class Pt
 {
@@ -385,53 +390,40 @@ void initAddStroke(JSONArray points, String name, boolean isBlack){
     }
     
     toDraw.add(point);
+    
+    if (LOOP_DRAWING){
+      toDrawLoop.add(point);
+    }
   }
 }
 
-void initializeToDraw2(){
+void clearDrawing(){
+  DRAWN_LAYERS = new HashMap();
+}
+
+void repopulateToDraw(){
   toDraw = new LinkedList<Point>();
   
-  int numStrokes = BRUSH_DATA.size();
-  int numLayers = FACE_LAYERS.length;
+  ListIterator<Point> listIterator = toDrawLoop.listIterator();
   
-  int lastTimestamp = MIN_INT;
-  int currentTimestamp = MAX_INT;
-  String currentName = "";
+  int i = 0;
   
-  JSONArray nextStroke;
-  
-  nextStroke = null;
-  currentTimestamp = MAX_INT;
-  
-  for (int i = 0; i < numLayers; i++){
-    String currentLayer = FACE_LAYERS[i];
+  while (listIterator.hasNext()) {
+    Point p = listIterator.next();
     
-    for (int j = 0 ; j < numStrokes; j++){
-      JSONObject obj = BRUSH_DATA.getJSONObject(j);
-      
-      String name = obj.getString("name");
-      
-      if (name.equals(currentLayer)){
-        JSONArray arr = obj.getJSONArray("stroke");
-        
-        JSONObject temp = arr.getJSONObject(0);
-        
-        JSONArray points = temp.getJSONArray("points");
-        boolean isBlack = temp.getBoolean("isBlack", true);
-        
-        JSONObject jsonPt = points.getJSONObject(0);
-        
-        initAddStroke(points, name, isBlack);
-      }
-    }
+    toDraw.add(p);
+    i++;
   }
   
-  return;
+  START_TIME = scaledMillis();
 }
 
 void initializeToDraw(){
   toDraw = new LinkedList<Point>();
   
+  if (LOOP_DRAWING){
+    toDrawLoop = new LinkedList<Point>();
+  }
   
   int numLayers = BRUSH_DATA.size();
   
@@ -684,12 +676,21 @@ Pt setupMatrixForLayer(String name, Pt faceOffset){
   return centroid;
 }
 
+int scaledMillis(){
+  return int(floor((millis() * DRAWING_SPEED)));
+}
+
 int currentTime(){
-  return int(floor((millis() * DRAWING_SPEED) + START_TIME));
+  return int(floor((millis() * DRAWING_SPEED) - START_TIME));
 }
 
 void addVisibleBrushPoints(){
   Point point = toDraw.peek();
+  
+  if (point == null && LOOP_DRAWING){
+    clearDrawing();
+    repopulateToDraw();
+  }
   
   while (point != null && (point.timestamp <= currentTime())){
     toDraw.poll();
@@ -703,6 +704,10 @@ void addVisibleBrushPoints(){
 void update(){
   currentFrame++;
   
+  if (LOOP_FACE && currentFrame >= FACE_VERTEX_FRAMES.size()){
+    currentFrame = 0;
+  }
+  
   currentFace = FACE_VERTEX_FRAMES.getJSONObject(currentFrame);
   
   addVisibleBrushPoints();
@@ -714,19 +719,22 @@ void drawFace(){
   
   JSONArray faceVertices = currentFace.getJSONArray("vertices");
   
-  for (int i = 0; i < FACE_CONNECTIONS.size(); i++){
-    Pair pair = FACE_CONNECTIONS.get(i);
-    
-    JSONArray a1 = faceVertices.getJSONArray(pair.p1);
-    JSONArray a2 = faceVertices.getJSONArray(pair.p2);
-    
-    float x1 = a1.getFloat(0);
-    float y1 = a1.getFloat(1);
-    
-    float x2 = a2.getFloat(0);
-    float y2 = a2.getFloat(1);
-    
-    line(x1, y1, x2, y2);
+  if (faceVertices.size() > 0){
+    for (int i = 0; i < FACE_CONNECTIONS.size(); i++){
+      Pair pair = FACE_CONNECTIONS.get(i);
+      
+      JSONArray a1 = faceVertices.getJSONArray(pair.p1);
+      JSONArray a2 = faceVertices.getJSONArray(pair.p2);
+      
+      float x1 = a1.getFloat(0);
+      float y1 = a1.getFloat(1);
+      
+      float x2 = a2.getFloat(0);
+      float y2 = a2.getFloat(1);
+      
+      line(x1, y1, x2, y2);
+    }
+  } else {
   }
 }
 
@@ -771,7 +779,6 @@ void drawDrawingSoFar(){
             stroke(0);
           } else {
             stroke(255);
-            println("woots!");
           }
           
           beginShape();
