@@ -14,7 +14,6 @@ float DRAWING_SPEED = 1.0;
 // if false, curves will auto fill their space with white
 boolean NO_FILL = true;
 
-
 int IMAGE_WIDTH = 1080;
 int IMAGE_HEIGHT = 720;
 int FRAME_RATE = 30;
@@ -368,7 +367,7 @@ void setup(){
   initializeToDraw();
 }
 
-void initAddStroke(JSONArray points, String name){
+void initAddStroke(JSONArray points, String name, boolean isBlack){
   for (int k = 0; k < points.size(); k++){
     JSONObject jsonPt = points.getJSONObject(k);
 
@@ -376,7 +375,6 @@ void initAddStroke(JSONArray points, String name){
     int y = jsonPt.getInt("y");
     float pressure = jsonPt.getFloat("pressure");
     int timestamp = jsonPt.getInt("timestamp");
-    boolean isBlack = jsonPt.getBoolean("isBlack", true);
     
     Point point = new Point(x, y, pressure, name, timestamp);
     
@@ -419,10 +417,11 @@ void initializeToDraw2(){
         JSONObject temp = arr.getJSONObject(0);
         
         JSONArray points = temp.getJSONArray("points");
+        boolean isBlack = temp.getBoolean("isBlack", true);
         
         JSONObject jsonPt = points.getJSONObject(0);
         
-        initAddStroke(points, name);
+        initAddStroke(points, name, isBlack);
       }
     }
   }
@@ -436,6 +435,7 @@ void initializeToDraw(){
   
   int numLayers = BRUSH_DATA.size();
   
+  boolean nextIsBlack = true;
   int lastTimestamp = MIN_INT;
   int currentTimestamp = MAX_INT;
   String currentName = "";
@@ -460,6 +460,7 @@ void initializeToDraw(){
           JSONObject temp = arr.getJSONObject(j);
           
           JSONArray points = temp.getJSONArray("points");
+          boolean isBlack = temp.getBoolean("isBlack", true);
           
           JSONObject jsonPt = points.getJSONObject(0);
           int timestamp = jsonPt.getInt("timestamp");
@@ -468,6 +469,7 @@ void initializeToDraw(){
             currentTimestamp = timestamp;
             currentName = name;
             nextStroke = points;
+            nextIsBlack = isBlack;
             break;
           }
         }
@@ -476,7 +478,7 @@ void initializeToDraw(){
     lastTimestamp = currentTimestamp;
     
     if (nextStroke != null){
-      initAddStroke(nextStroke, currentName);
+      initAddStroke(nextStroke, currentName, nextIsBlack);
     } else {
       return;
     }
@@ -769,6 +771,7 @@ void drawDrawingSoFar(){
             stroke(0);
           } else {
             stroke(255);
+            println("woots!");
           }
           
           beginShape();

@@ -239,8 +239,11 @@ void setup() {
 void addPoint(float pressure){
   Point pt = new Point(mouseX, mouseY, pressure);
   
-  if (){
-    if (lastMouse != null && mouseX == lastMouse.x && mouseY == lastMouse.y){
+  if (lastMouse == null){
+    Stroke stroke = getCurrentStroke();
+    stroke.addPoint(pt);
+  } else {
+    if (mouseX == lastMouse.x && mouseY == lastMouse.y){
     } else {
       Stroke stroke = getCurrentStroke();
       
