@@ -11,7 +11,7 @@ boolean SAVE_VIDEO = false;
 // name of the folder in which to save files
 String VIDEO_NAME = "animate";
 // 1.0 is normal speed
-float DRAWING_SPEED = 1.0;
+float DRAWING_SPEED = 20.0;
 // if false, curves will auto fill their space with white
 boolean NO_FILL = true;
 
@@ -37,6 +37,99 @@ float DEF_rightEyeOpenness = 3.11557;
 float DEF_jawOpenness = 22.8165;
 
 float FACE_SCALAR = 1.6;
+
+ArrayList<Pt> TRANSFORMED_POINTS;
+ArrayList<Pt> USE_POINTS;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ArrayList<Pair> FACE_CONNECTIONS;
 
@@ -517,8 +610,13 @@ ArrayList<Pt> getCurrentFacePointsForLayer(String name){
   
   ArrayList<Pt> result = new ArrayList<Pt>();
   
+  if (arr.size() == 0){
+    return null;
+  }
+  
   for (int i = 0; i < pointNums.size(); i++){
     int pointNum = pointNums.get(i);
+    
     JSONArray pointArr = arr.getJSONArray(pointNum);
     Pt pt = new Pt(pointArr.getFloat(0), pointArr.getFloat(1));
     
@@ -530,15 +628,21 @@ ArrayList<Pt> getCurrentFacePointsForLayer(String name){
 
 Pt getFaceMotion(String name){
   ArrayList<Pt> points = (ArrayList<Pt>)STATIC_FACE_FEATURES.get(name);
+  
   ArrayList<Pt> transformedPoints = getCurrentFacePointsForLayer(name);
   
   if (points == null || points.size() == 0){
     return null;
   }
   
+  if (transformedPoints != null){
+    TRANSFORMED_POINTS = transformedPoints;
+    USE_POINTS = points;
+  }
+  
   // line up centroids
-  Pt centroid = findCentroid(transformedPoints);
-  Pt oldCentroid = findCentroid(points);
+  Pt centroid = findCentroid(TRANSFORMED_POINTS);
+  Pt oldCentroid = findCentroid(USE_POINTS);
   
   Pt delta = new Pt(centroid.x - oldCentroid.x, centroid.y - oldCentroid.y);
   
@@ -612,7 +716,7 @@ Pt setupMatrixForLayer(String name, Pt faceOffset){
   ArrayList<Pt> points = (ArrayList<Pt>)STATIC_FACE_FEATURES.get(name);
   ArrayList<Pt> transformedPoints = getCurrentFacePointsForLayer(name);
   
-  if (points == null || points.size() == 0){
+  if (points == null || points.size() == 0 || transformedPoints == null){
     return null;
   }
   
