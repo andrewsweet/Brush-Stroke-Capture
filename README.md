@@ -9,3 +9,5 @@ faceData.json is the face tracking data.
 penData.json is the pen tracking data.
 
 All other files are used for the tracking (except penData_\*.json and faceData_\*.json files).
+
+To see an example motion capture: https://www.youtube.com/watch?v=LzQi5132XxE
